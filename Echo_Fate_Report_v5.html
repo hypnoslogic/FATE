@@ -1,0 +1,1549 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FATE &amp; Echo Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: grey desk with A4 sheets; each sheet = header band, patient strip, two-column measurement tables, footer with references + timestamp */
+:root{
+  --ink:#17212b; --ink-2:#46525e; --muted:#76818c; --rule:#c8d0d7; --rule-2:#e3e7eb;
+  --paper:#ffffff; --desk:#dcdfe2; --field:#eef3f7;
+  --accent:#8a1c2b; --accent-soft:#f7ebed; --head:#333333;
+  --ok:#2c6a43; --m1:#8f6200; --m1-bg:#fbf1d8; --m2:#b8410e; --m2-bg:#fde8dc; --sev:#b01f2c; --sev-bg:#fadfe2; --info:#2d5b84; --info-bg:#e5eef7; --na:#8a949d;
+  --f-head:"IBM Plex Sans Condensed","Arial Narrow","Roboto Condensed",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",Roboto,Arial,sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--desk);color:var(--ink);font-family:var(--f-body)}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--info);outline-offset:1px}
+
+/* toolbar (screen only) */
+.toolbar{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px));background:var(--ink);color:#fff;font-size:13px}
+.brand{font-family:var(--f-head);font-weight:600;font-size:15px;letter-spacing:.02em;margin-right:6px}
+.brand b{color:#f2a7b1;font-weight:600}
+.tabs{display:flex;gap:2px;background:rgba(255,255,255,.1);border-radius:7px;padding:3px}
+.tabs button{border:0;background:transparent;color:#cfd8e0;padding:6px 12px;border-radius:5px;font-family:var(--f-head);font-weight:500;font-size:13.5px}
+.tabs button[aria-selected="true"]{background:#fff;color:var(--ink)}
+.tb-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.tb-group label{color:#b7c2cc}
+.tb-group select{font:inherit;border-radius:5px;border:0;padding:5px 6px}
+.btn{border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;padding:6px 12px;border-radius:5px}
+.btn:hover{background:rgba(255,255,255,.08)}
+.btn.primary{background:#fff;color:var(--ink);border-color:#fff;font-weight:600}
+.tb-note{color:#9fadb9;font-size:12px;margin-left:auto}
+
+.desk{overflow-x:auto;padding:24px 16px 56px}
+.view{display:none;flex-direction:column;gap:24px}
+.view.active{display:flex}
+
+/* A4 sheet */
+.sheet{width:210mm;height:297mm;flex:none;margin-inline:auto;background:var(--paper);box-shadow:0 1px 2px rgba(0,0,0,.12),0 10px 28px rgba(0,0,0,.14);padding:0 10mm 6.5mm;display:flex;flex-direction:column;font-size:7.6pt;line-height:1.25;position:relative;overflow:hidden}
+.sheet::before{content:"";display:block;height:1.6mm;margin:0 -10mm 4.5mm;background:var(--head)}
+
+/* header */
+.sh-head{display:grid;grid-template-columns:1fr auto;grid-template-areas:"org ids" "ttl ids";column-gap:6mm;row-gap:1.6mm;padding-bottom:2.4mm;border-bottom:1.4pt solid var(--ink)}
+.org{grid-area:org}
+.org-name{font-family:var(--f-head);font-weight:700;font-size:9.6pt;letter-spacing:.01em}
+.org-sub{font-size:6.8pt;color:var(--ink-2)}
+.org [contenteditable]{outline:none;border-radius:1mm}
+.org [contenteditable]:hover{background:var(--field)}
+.ttl{grid-area:ttl}
+.eyebrow{font-family:var(--f-head);font-size:6.4pt;letter-spacing:.16em;text-transform:uppercase;color:var(--head);font-weight:600}
+.ttl h1{margin:.3mm 0 0;font-family:var(--f-head);font-weight:600;font-size:14.5pt;line-height:1.05;letter-spacing:-.005em;text-wrap:balance}
+.ids{grid-area:ids;margin:0;display:grid;grid-template-columns:auto auto;gap:.8mm 2.4mm;align-self:end;font-size:7pt}
+.ids dt{font-family:var(--f-head);text-transform:uppercase;letter-spacing:.1em;font-size:5.9pt;color:var(--muted);align-self:center}
+.ids dd{margin:0;font-family:var(--f-num);font-size:7.4pt}
+.ids input{font:inherit;font-family:var(--f-num);font-size:7.4pt;border:0;background:var(--field);border-radius:.6mm;padding:.3mm .8mm;color:var(--ink)}
+
+/* patient strip */
+.pt{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1.3mm 3mm;padding:2.2mm 0 2.4mm;border-bottom:.6pt solid var(--rule)}
+.fld{display:flex;flex-direction:column;min-width:0}
+.fld>label,.fld>.lbl{font-family:var(--f-head);font-size:5.9pt;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);display:flex;gap:1mm;align-items:center;height:3.2mm;line-height:3.2mm;white-space:nowrap;overflow:hidden}
+.fv{display:flex;align-items:center;gap:1mm;border-bottom:.6pt dotted var(--ink-2);height:5mm}
+.fv input,.fv select,.fv output,.fv .pd{flex:1;min-width:0;border:0;background:transparent;font:inherit;font-size:8pt;padding:0;margin:0;height:4.4mm;line-height:4.4mm;color:var(--ink)}
+.fv input[type=date],.fv input[type=datetime-local]{font-family:var(--f-num);font-size:7.6pt}
+.fv input[type=number],.fv output{font-family:var(--f-num)}
+.fv output{font-size:8pt}
+.fv .u{font-size:6.4pt;color:var(--muted)}
+.span2{grid-column:span 2}.span3{grid-column:span 3}.span4{grid-column:span 4}
+select.mini{font:inherit;font-size:5.8pt;border:0;background:var(--field);border-radius:.6mm;color:var(--ink-2);text-transform:none;letter-spacing:0;padding:0 .4mm;height:3mm;line-height:3mm}
+.pt-mini{display:flex;flex-wrap:wrap;gap:1mm 5mm;padding:1.8mm 0;border-bottom:.6pt solid var(--rule);font-size:7.2pt;color:var(--ink-2)}
+.pt-mini b{font-weight:600;color:var(--ink);font-family:var(--f-num);font-size:7.4pt}
+
+/* body + sections */
+.body{flex:1;display:flex;flex-direction:column;gap:2.8mm;padding-top:2.6mm;min-height:0;overflow:hidden}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:2.8mm 6mm;align-items:start}
+.cols.w-l{grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr)}
+.stack{display:flex;flex-direction:column;gap:2.8mm;min-width:0}
+.sec{display:flex;flex-direction:column;min-width:0}
+.sec h2{margin:0 0 .6mm;display:flex;align-items:center;gap:1.6mm;font-family:var(--f-head);font-weight:600;font-size:8.2pt;text-transform:uppercase;letter-spacing:.07em;padding-bottom:.7mm;border-bottom:.9pt solid var(--ink)}
+.sec h2 .n{display:inline-grid;place-items:center;width:4.1mm;height:4.1mm;border-radius:50%;background:var(--accent);color:#fff;font-size:6.8pt;letter-spacing:0;flex:none}
+.sec h2 .hn{margin-left:auto;font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted);font-size:6.4pt}
+.sub{font-family:var(--f-head);font-size:6.4pt;text-transform:uppercase;letter-spacing:.09em;color:var(--accent);font-weight:600;margin:1.4mm 0 .2mm}
+
+/* measurement rows */
+.r{display:grid;grid-template-columns:minmax(0,1fr) 12mm 10.5mm 18mm 17mm;align-items:center;column-gap:1.3mm;min-height:4.25mm;border-bottom:.4pt solid var(--rule-2)}
+.r.rh{font-family:var(--f-head);font-size:5.8pt;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);min-height:3.4mm;border-bottom:.6pt solid var(--rule)}
+.r.rh span:nth-child(2){text-align:right}
+.lb{font-size:7.2pt;color:var(--ink);min-width:0}
+.lb i{font-style:normal;font-family:var(--f-head);font-size:5.4pt;letter-spacing:.06em;text-transform:uppercase;color:var(--info);margin-left:1mm}
+.r input,.r output{font-family:var(--f-num);font-size:7.8pt;text-align:right;width:100%;border:0;background:var(--field);padding:.25mm .8mm;border-radius:.6mm;color:var(--ink);min-height:3.5mm;font-variant-numeric:tabular-nums}
+.r output{background:transparent;font-weight:500;display:block}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.un{font-size:6.3pt;color:var(--ink-2);white-space:nowrap}
+.rf{font-family:var(--f-num);font-size:6.2pt;color:var(--ink-2);line-height:1.1;font-variant-numeric:tabular-nums}
+.rf sup{font-family:var(--f-head);font-weight:600;color:var(--accent);font-size:5.2pt;margin-left:.3mm}
+.fl{min-width:0}
+.chip{display:inline-block;max-width:100%;font-family:var(--f-head);font-size:6.2pt;font-weight:500;line-height:1.25;padding:.05mm 1.1mm;border-radius:2mm;border:.5pt solid transparent;white-space:nowrap}
+.c-ok{color:var(--ok)}
+.c-m1{color:var(--m1);background:var(--m1-bg);border-color:var(--m1)}
+.c-m2{color:var(--m2);background:var(--m2-bg);border-color:var(--m2)}
+.c-sev{color:var(--sev);background:var(--sev-bg);border-color:var(--sev);font-weight:600}
+.c-info{color:var(--info);background:var(--info-bg);border-color:var(--info)}
+.c-na{color:var(--na)}
+
+/* qualitative rows */
+.q{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);align-items:center;column-gap:2mm;min-height:4.3mm;border-bottom:.4pt solid var(--rule-2)}
+.q.q3{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)}
+.q.q3.hd{font-family:var(--f-head);font-size:5.8pt;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);min-height:3.4mm;border-bottom:.6pt solid var(--rule)}
+.q>label,.q>span.l{font-size:7.2pt;color:var(--ink-2)}
+.q select,.q input,.vg select,.vt select,.vt input{font:inherit;font-size:7.4pt;border:0;background:var(--field);border-radius:.6mm;padding:.25mm .6mm;color:var(--ink);width:100%;min-width:0}
+
+/* views obtained */
+.views{display:flex;flex-direction:column}
+.vrow{display:grid;grid-template-columns:5.2mm minmax(0,1fr) 19mm;align-items:center;gap:1.4mm;min-height:4.3mm;border-bottom:.4pt solid var(--rule-2)}
+.pos{display:inline-grid;place-items:center;height:3.6mm;border:.6pt solid var(--accent);color:var(--accent);border-radius:.8mm;font-family:var(--f-head);font-weight:600;font-size:6.2pt}
+.vrow select{font:inherit;font-size:7.2pt;border:0;background:var(--field);border-radius:.6mm;padding:.2mm .5mm;color:var(--ink);width:100%}
+.vrow span.v{font-size:7.2pt}
+.vg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:4mm}
+.vg .vrow{grid-template-columns:minmax(0,1fr) 17mm}
+.vg.vg3{grid-template-columns:repeat(3,minmax(0,1fr));column-gap:6mm}
+
+/* interpretation lines */
+.interp{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.6mm 2mm;align-items:baseline;padding:1.2mm 1.6mm;margin-top:1mm;background:var(--accent-soft);border-radius:.8mm;font-size:7.1pt}
+.interp dt{font-family:var(--f-head);font-size:6pt;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);font-weight:600}
+.interp dd{margin:0;min-width:0}
+.note{font-size:6.2pt;color:var(--muted);margin-top:.6mm;line-height:1.3}
+
+/* valve table */
+.vt{display:grid;grid-template-columns:16mm minmax(0,1.5fr) minmax(0,1.1fr) minmax(0,1fr) 12mm 22mm;column-gap:2mm;align-items:center}
+.vt>*{min-height:4.3mm;display:flex;align-items:center;border-bottom:.4pt solid var(--rule-2);min-width:0}
+.vt .hd{font-family:var(--f-head);font-size:5.8pt;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);min-height:3.4mm;border-bottom:.6pt solid var(--rule)}
+.vt .vn{font-family:var(--f-head);font-weight:600;font-size:7.4pt}
+.vt .sten{font-size:7pt;color:var(--ink-2)}
+.vt input{font-family:var(--f-num);text-align:right}
+
+/* free text */
+.ta{display:block;width:100%;font:inherit;font-size:7.8pt;line-height:1.38;border:.5pt solid var(--rule);background:var(--field);border-radius:.8mm;padding:1.2mm 1.6mm;resize:none;color:var(--ink)}
+.ta.tall{height:28mm}.ta.mid{height:17mm}.ta.short{height:10mm}
+.grow{flex:1;display:flex;flex-direction:column;min-height:0}
+.grow .ta{flex:1;height:auto;min-height:12mm}
+
+/* signature */
+.sig{display:grid;grid-template-columns:1.3fr 1fr 1.3fr 1fr;gap:3mm;align-items:end;padding-top:1mm}
+.sig .line{border-bottom:.6pt solid var(--ink);height:7mm}
+
+/* footer */
+.sh-foot{margin-top:2.4mm;padding-top:1.5mm;border-top:.6pt solid var(--ink);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:.8mm 6mm;font-size:5.8pt;color:var(--ink-2);line-height:1.32}
+.sh-foot .refs{grid-column:1/-1}
+.sh-foot .refs b{color:var(--accent);font-family:var(--f-head)}
+.sh-foot .disc{font-style:italic}
+.sh-foot .stamp{font-family:var(--f-num);font-size:6pt;color:var(--ink);text-align:right;white-space:nowrap}
+
+/* FATE card view */
+.card-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3.2mm 6mm;align-items:start}
+.torso{display:grid;grid-template-columns:40mm minmax(0,1fr);gap:3mm;align-items:start}
+.torso svg{width:40mm;height:auto}
+table.ref{width:100%;border-collapse:collapse;font-size:7pt}
+table.ref th{font-family:var(--f-head);font-size:5.9pt;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500;text-align:left;border-bottom:.6pt solid var(--rule);padding:.5mm 1mm .5mm 0}
+table.ref td{border-bottom:.4pt solid var(--rule-2);padding:.6mm 1mm .6mm 0;vertical-align:top}
+table.ref td.num{font-family:var(--f-num);white-space:nowrap}
+table.ref.grade td:nth-child(n+3),table.ref.grade th:nth-child(n+3){text-align:center}
+ol.steps{margin:0;padding:0;list-style:none;display:flex;flex-direction:column}
+ol.steps li{display:grid;grid-template-columns:5mm 1fr;align-items:center;min-height:4.6mm;border-bottom:.4pt solid var(--rule-2);font-size:7.4pt}
+ol.steps li span{display:inline-grid;place-items:center;width:3.8mm;height:3.8mm;border-radius:50%;background:var(--accent);color:#fff;font-size:6.2pt;font-family:var(--f-head);font-weight:600}
+.attrib{border:.6pt solid var(--accent);border-radius:1mm;padding:2mm 2.4mm;font-size:6.8pt;line-height:1.4;background:var(--accent-soft)}
+.attrib b{font-family:var(--f-head)}
+.attrib a{color:var(--accent)}
+.det{display:grid;grid-template-columns:auto 1fr 1fr;gap:0 2mm;font-size:7pt}
+.det>*{border-bottom:.4pt solid var(--rule-2);padding:.6mm 0}
+.det .h{font-family:var(--f-head);font-size:5.9pt;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+
+.pd{display:none;font-family:var(--f-num)}
+.ta-print{display:none;white-space:pre-wrap;font-size:7.8pt;line-height:1.38;padding:1.2mm 1.6mm;border:.5pt solid var(--rule-2);border-radius:.8mm;overflow:hidden}
+/* screen-only controls */
+.setall{margin-left:auto;border:.6pt solid var(--rule);background:var(--field);color:var(--ink);border-radius:1mm;font-family:var(--f-head);font-size:6.4pt;font-weight:500;letter-spacing:.02em;text-transform:none;padding:.3mm 1.6mm}
+.setall:hover{border-color:var(--ink-2)}
+.sec h2 .setall+.hn,.sec h2 .hn+.setall{margin-left:2mm}
+.picker{width:210mm;max-width:100%;margin-inline:auto;background:var(--paper);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 2px rgba(0,0,0,.1);font-size:13px}
+.pk-head{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.pk-head b{font-family:var(--f-head);font-size:14px}
+.pk-head span{color:var(--muted);font-size:12px}
+.pk-head button{border:1px solid var(--rule);background:var(--field);border-radius:5px;padding:4px 10px;font-size:12.5px;color:var(--ink)}
+.pk-head button:first-of-type{margin-left:auto}
+.pk-list{display:flex;flex-wrap:wrap;gap:6px}
+.pk-list label{display:flex;align-items:center;gap:6px;border:1px solid var(--rule);border-radius:999px;padding:4px 11px 4px 8px;cursor:pointer;user-select:none;font-size:12.5px}
+.pk-list label:has(input:checked){background:var(--ink);border-color:var(--ink);color:#fff}
+.pk-list input{accent-color:var(--accent);margin:0}
+.view.measure{display:flex;position:absolute;left:-10000px;top:0;visibility:hidden}
+.cardlink{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"k u" "n n";gap:.4mm 3mm;align-items:baseline;margin-top:2.4mm;padding:2mm 3mm;border:1pt solid var(--head);border-radius:1mm;background:var(--field);color:var(--ink);text-decoration:none}
+.cardlink:hover{background:var(--rule-2)}
+.cl-k{grid-area:k;font-family:var(--f-head);font-weight:700;font-size:9pt;color:var(--head)}
+.cl-u{grid-area:u;font-family:var(--f-num);font-size:8pt;color:var(--accent);text-decoration:underline;overflow-wrap:anywhere}
+.cl-n{grid-area:n;font-size:6.6pt;color:var(--ink-2)}
+/* eyeball checklist */
+.eb{margin-top:1.2mm;padding:1.2mm 1.6mm 1.4mm;border:.5pt solid var(--rule);border-radius:.8mm;display:flex;flex-direction:column;gap:.9mm}
+.eb-h{display:flex;align-items:center;gap:2mm;font-family:var(--f-head);font-size:6.4pt;text-transform:uppercase;letter-spacing:.09em;color:var(--accent);font-weight:600}
+.eb-row{display:grid;grid-template-columns:17mm minmax(0,1fr);align-items:center;gap:1.4mm;font-size:7.2pt}
+.eb-row>.l{font-size:6.6pt;color:var(--ink-2)}
+.eb-opts{display:flex;flex-wrap:wrap;gap:.6mm 3mm;align-items:center;min-width:0}
+.ck{display:inline-flex;align-items:center;gap:1mm;cursor:pointer;white-space:nowrap;font-size:7.2pt;color:var(--ink)}
+.ck input{appearance:none;-webkit-appearance:none;width:3mm;height:3mm;margin:0;border:.7pt solid var(--ink-2);border-radius:.5mm;background:var(--paper);display:inline-grid;place-items:center;flex:none;cursor:pointer}
+.ck input:checked{background:var(--ink);border-color:var(--ink)}
+.ck input:checked::after{content:"";width:1.5mm;height:.8mm;border:solid #fff;border-width:0 0 .5mm .5mm;transform:translateY(-.2mm) rotate(-45deg)}
+.ck.normal{font-weight:600;color:var(--ok)}
+.ck.normal input:checked{background:var(--ok);border-color:var(--ok)}
+.eb select{font:inherit;font-size:7pt;border:0;background:var(--field);border-radius:.6mm;padding:.1mm .5mm;color:var(--ink)}
+.eb .off,.eb .off .ck{color:var(--na)}
+.eb .off .ck input{border-color:var(--rule);background:var(--rule-2)}
+.eb .off .ck input:checked{background:var(--rule);border-color:var(--rule)}
+.eb-sugg{display:flex;flex-wrap:wrap;align-items:center;gap:1mm 2mm;font-size:6.4pt;color:var(--info);background:var(--info-bg);border-radius:.6mm;padding:.5mm 1.2mm}
+.eb-sugg button{border:.5pt solid var(--info);background:var(--paper);color:var(--info);border-radius:.6mm;font-size:6.2pt;padding:0 1.2mm}
+.pv{display:none;min-width:0;color:var(--ink);overflow-wrap:anywhere}
+[hidden]{display:none!important}
+.rf.muted{color:var(--na)}
+.tgl{display:inline-flex;align-items:center;gap:1mm;cursor:pointer}
+.tgl input{margin:0;width:2.6mm;height:2.6mm;accent-color:var(--ink)}
+.bsa-warn{margin-top:1.4mm;padding:.8mm 1.6mm;border:.5pt solid var(--m2);background:var(--m2-bg);color:var(--m2);border-radius:.8mm;font-family:var(--f-head);font-size:6.8pt;font-weight:600;letter-spacing:.02em}
+.dc{display:grid;grid-template-columns:17mm minmax(0,1fr);gap:1.4mm;align-items:start;padding:.8mm 0;border-bottom:.4pt solid var(--rule-2)}
+.dc>.l{font-size:6.6pt;color:var(--ink-2);line-height:1.2}
+.dc>.l i,.q .qi{font-style:normal;color:var(--muted);font-size:5.8pt}
+.dc .ck{font-size:6.8pt}
+table.asg{width:100%;border-collapse:collapse;margin-top:1mm;font-size:6.3pt}
+table.asg th{font-family:var(--f-head);font-size:5.6pt;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:500;text-align:left;border-bottom:.6pt solid var(--rule);padding:.3mm .8mm .3mm 0}
+table.asg td{font-family:var(--f-num);border-bottom:.4pt solid var(--rule-2);padding:.3mm .8mm .3mm 0;white-space:nowrap}
+table.asg td:first-child{font-family:var(--f-body)}
+table.asg caption{caption-side:bottom;text-align:left;font-size:5.8pt;color:var(--muted);padding-top:.4mm}
+/* print */
+@page{size:A4 portrait;margin:0}
+@media print{
+  html,body{background:#fff}
+  .toolbar,.picker,.setall,.eb-sugg{display:none!important}
+  .dc .ck input:not(:checked){border-color:var(--rule)}
+  select[data-k],input[data-k]:not([type=checkbox]):not([type=date]):not([type=datetime-local]){display:none!important}
+  .pv{display:block;font-size:7.4pt;line-height:1.25;padding:.25mm 0}
+  .pv.num{font-family:var(--f-num);font-size:7.8pt;text-align:right;padding:.25mm .8mm;font-variant-numeric:tabular-nums}
+  .fv .pv{flex:1;font-size:8pt;line-height:4.4mm;padding:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--f-body);text-align:left}
+  .fv .pv.num{font-family:var(--f-num)}
+  .ids .pv{font-family:var(--f-num);font-size:7.4pt}
+  .vrow .pv{font-size:7.2pt}
+  .vt .pv.num{text-align:right}
+  .eb .pv{display:inline;font-size:7pt}
+  .eb .pv.empty,.mini+.pv.empty{display:none}
+  .lbl .pv{display:inline;font-size:5.8pt;padding:0 0 0 .6mm;text-transform:none;letter-spacing:0}
+  .cl-u{text-decoration:none}
+  .desk{padding:0;overflow:visible}
+  .view{gap:0}
+  body[data-print="all"] .view{display:flex!important}
+  .sheet{box-shadow:none;margin:0;height:296.6mm;break-after:page;page-break-after:always}
+  .sheet.last{break-after:auto;page-break-after:auto}
+  input:not([type=checkbox]),select,textarea,output,.r input,.q select,.vrow select,.ids input{background:transparent!important}
+  .ck input:checked{background:var(--ink)!important}
+  .ck.normal input:checked{background:var(--ok)!important}
+  .eb select.empty{display:none}
+  select{-webkit-appearance:none;-moz-appearance:none;appearance:none}
+  ::placeholder{color:transparent!important}
+  .ta{display:none!important}
+  .ta-print{display:block}
+  .grow .ta-print{flex:1;min-height:12mm}
+  input[type=date],input[type=datetime-local]{display:none}
+  .pd{display:inline}
+  .org [contenteditable]:hover{background:none}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body data-print="current">
+
+<div class="toolbar" role="toolbar" aria-label="Report controls">
+  <span class="brand">FATE <b>/</b> Echo Report</span>
+  <div class="tabs" role="tablist">
+    <button role="tab" data-view="basic" aria-selected="true">Basic FATE</button>
+    <button role="tab" data-view="af" aria-selected="false">Advanced FATE</button>
+    <button role="tab" data-view="adv" aria-selected="false">Echocardiogram Report</button>
+    <button role="tab" data-view="card" aria-selected="false">FATE Card</button>
+  </div>
+  <div class="tb-group">
+    <label for="printScope">Print</label>
+    <select id="printScope"><option value="current">This view</option><option value="all">All views</option></select>
+    <button class="btn primary" id="btnPrint">Print / Save PDF</button>
+    <button class="btn" id="btnExample">Load example</button>
+    <button class="btn" id="btnClear">Clear</button>
+  </div>
+  <span class="tb-note">Shared fields sync across views · drafts autosave in this browser</span>
+</div>
+
+<main class="desk">
+
+<!-- ===================== BASIC FATE ===================== -->
+<section class="view active" data-view="basic">
+  <article class="sheet">
+    <div data-tpl="head" data-eyebrow="Point-of-care ultrasound · Focus Assessed Transthoracic Echo" data-title="FATE Examination Report" data-rid="FATE"></div>
+    <div data-tpl="ptb"></div>
+    <div class="body">
+      <div class="cols w-l">
+        <section class="sec">
+          <h2>Views obtained<button type="button" class="setall" data-setall>Set all to Good</button><span class="hn">Pos 1–4</span></h2>
+          <div class="views">
+            <div class="vrow"><span class="pos">1</span><span class="v">Subcostal 4-chamber</span><select data-k="v_sc4c" data-opts="vq"></select></div>
+            <div class="vrow"><span class="pos">2</span><span class="v">Apical 4-chamber</span><select data-k="v_a4c" data-opts="vq"></select></div>
+            <div class="vrow"><span class="pos">3</span><span class="v">Parasternal long axis</span><select data-k="v_plax" data-opts="vq"></select></div>
+            <div class="vrow"><span class="pos">3</span><span class="v">Parasternal short axis (LV)</span><select data-k="v_psax" data-opts="vq"></select></div>
+            <div class="vrow"><span class="pos">4</span><span class="v">Pleura — right</span><select data-k="v_pl_r" data-opts="vq"></select></div>
+            <div class="vrow"><span class="pos">4</span><span class="v">Pleura — left</span><select data-k="v_pl_l" data-opts="vq"></select></div>
+            <div class="vrow"><span class="pos">1</span><span class="v">Subcostal IVC (extended)</span><select data-k="v_ivc" data-opts="vq"></select></div>
+          </div>
+        </section>
+        <section class="sec">
+          <h2><span class="n">1</span>Obvious pathology</h2>
+          <div class="q"><label>Pericardial effusion</label><select data-k="peff" data-opts="peff"></select></div>
+          <div class="q"><label>Tamponade features</label><select data-k="tamp" data-opts="tamp"></select></div>
+          <div class="q"><label>LV cavity</label><select data-k="lv_size" data-opts="lvsize"></select></div>
+                    <div class="q"><label>RV size (vs LV, A4C)</label><select data-k="rv_size" data-opts="rvsize"></select></div>
+          <div class="q"><label>Interventricular septum</label><select data-k="rv_sept" data-opts="sept"></select></div>
+          <div class="q"><label>Gross valve pathology</label><select data-k="valve_gross" data-opts="vgross"></select></div>
+          <div class="q"><label>Aortic root</label><select data-k="ao_q" data-opts="aoq"></select></div>
+        </section>
+      </div>
+
+      <div class="cols">
+        <section class="sec">
+          <h2><span class="n">2</span>Wall thickness &amp; dimensions<span class="hn">PLAX 2D / M-mode, end-diastole</span></h2>
+          <div class="tbl" data-rows="ivsd lvidd pwd lvids rvot_plax rv_basal la_ap ao_sinus=Aorta_(sinus_of_Valsalva)"></div>
+          <div data-tpl="eye"></div>
+        </section>
+        <section class="sec">
+          <h2><span class="n">3</span>Biventricular function</h2>
+          <div class="tbl" data-rows="fs ef_fs ef_vis epss mapse tapse"></div>
+          <div class="note">MSS/EPSS &gt;7 mm is sensitive for severe LV dysfunction (EF &lt;30%) but not specific; invalid with mitral stenosis, AR jet or abnormal mitral leaflets. MAPSE falls with age; &lt;8 mm usually indicates EF &lt;50%. Neither is graded.</div>
+          <div class="q"><label>LV systolic function (eyeball)</label><select data-k="lv_fn" data-opts="fn5"></select></div>
+          <div class="q"><label>Regional wall motion abnormality</label><select data-k="rwma" data-opts="rwma"></select></div>
+          <div class="q"><label>RV systolic function (eyeball)</label><select data-k="rv_fn" data-opts="fn4"></select></div>
+        </section>
+      </div>
+
+      <div class="cols">
+        <div class="stack">
+          <section class="sec">
+            <h2><span class="n">4</span>Pleura, both sides</h2>
+            <div class="q q3 hd"><span></span><span>Right</span><span>Left</span></div>
+            <div class="q q3"><span class="l">Lung sliding</span><select data-k="pl_r_slide" data-opts="slide"></select><select data-k="pl_l_slide" data-opts="slide"></select></div>
+            <div class="q q3"><span class="l">Effusion</span><select data-k="pl_r_eff" data-opts="pleff"></select><select data-k="pl_l_eff" data-opts="pleff"></select></div>
+            <div class="q q3"><span class="l">Pattern</span><select data-k="pl_r_pat" data-opts="lpat"></select><select data-k="pl_l_pat" data-opts="lpat"></select></div>
+          </section>
+          <section class="sec">
+            <h2><span class="n">5</span>Relate to clinical context</h2>
+            <div class="q"><label>Clinical question</label><input type="text" data-k="cq"></div>
+            <div class="q"><label>Haemodynamic picture</label><select data-k="ph" data-opts="ph"></select></div>
+            <div class="q"><label>Fluid responsiveness</label><select data-k="fr" data-opts="fr"></select></div>
+          </section>
+        </div>
+        <section class="sec">
+          <h2><span class="n">6</span>Additional ultrasound — IVC</h2>
+          <div class="tbl" data-rows="ivc_max ivc_min ivc_ci rap"></div>
+          <div class="note" data-o="ivc_note"></div>
+          <div class="q" style="margin-top:.8mm"><label>Other POCUS (eg gastric, DVT)</label><input type="text" data-k="other_us"></div>
+        </section>
+      </div>
+
+      <section class="sec grow">
+        <h2>Conclusion &amp; recommendations<button type="button" class="setall" data-concl-add>Add findings to conclusion</button></h2>
+        <textarea class="ta" data-k="concl" placeholder="Numbered key findings, then the answer to the clinical question."></textarea>
+        <div class="q" style="margin-top:1mm"><label>Formal echocardiography</label><select data-k="formal" data-opts="formal"></select></div>
+      </section>
+
+      <div data-tpl="sig"></div>
+    </div>
+    <footer class="sh-foot">
+      <div class="refs"><b>Reference sources</b> — <b>L</b> Lang RM et al. Recommendations for cardiac chamber quantification by echocardiography in adults. J Am Soc Echocardiogr 2015;28:1–39 / Eur Heart J Cardiovasc Imaging 2015;16:233–71 (sex-specific limits; requires sex). <b>F</b> FATE card 2020, USabcd (usabcd.org); Jensen MB, Sloth E, Larsen KM, Schmidt MB. Eur J Anaesthesiol 2004;21:700–7. <b>A</b> Mukherjee M et al. J Am Soc Echocardiogr 2025;38:141–86 (TAPSE, RV basal diameter, IVC/RAP). <b>P</b> McKaigney CJ et al. Am J Emerg Med 2014;32:493–7 (EPSS).</div>
+      <div class="disc">Focused point-of-care study answering a clinical question. It does not replace a comprehensive echocardiogram.</div>
+      <div class="stamp">Generated <span data-ts></span> · Page 1 of 1</div>
+    </footer>
+  </article>
+</section>
+
+
+<!-- ===================== ADVANCED FATE ===================== -->
+<section class="view" data-view="af">
+  <div class="picker" role="group" aria-label="Sections in this report">
+    <div class="pk-head"><b>Sections in this report</b><span>Tick what was done. Unticked sections are left out of the printout and pages re-flow.</span><button type="button" data-pk="all">All</button><button type="button" data-pk="core">FATE steps only</button></div>
+    <div class="pk-list" id="afPicker"></div>
+  </div>
+  <div id="af-pool" hidden>
+    <section class="sec" data-sec="views" data-w="full" data-fixed="1">
+      <h2>Views obtained<span class="hn">Basic and extended FATE views</span><button type="button" class="setall" data-setall>Set all to Good</button></h2>
+      <div class="vg vg3">
+        <div class="vrow"><span class="v">1 · Subcostal 4-chamber</span><select data-k="v_sc4c" data-opts="vq"></select></div>
+        <div class="vrow"><span class="v">2 · Apical 4-chamber</span><select data-k="v_a4c" data-opts="vq"></select></div>
+        <div class="vrow"><span class="v">3 · Parasternal long axis</span><select data-k="v_plax" data-opts="vq"></select></div>
+        <div class="vrow"><span class="v">3 · PSAX (LV)</span><select data-k="v_psax" data-opts="vq"></select></div>
+        <div class="vrow"><span class="v">4 · Pleura — right</span><select data-k="v_pl_r" data-opts="vq"></select></div>
+        <div class="vrow"><span class="v">4 · Pleura — left</span><select data-k="v_pl_l" data-opts="vq"></select></div>
+        <div class="vrow"><span class="v">1 · Subcostal IVC</span><select data-k="v_ivc" data-opts="vq"></select></div>
+        <div class="vrow"><span class="v">2 · Apical 5-chamber</span><select data-k="v_a5c" data-opts="vq"></select></div>
+        <div class="vrow"><span class="v">2 · Apical 2-chamber</span><select data-k="v_a2c" data-opts="vq"></select></div>
+        <div class="vrow"><span class="v">2 · Apical long axis</span><select data-k="v_a3c" data-opts="vq"></select></div>
+        <div class="vrow"><span class="v">3 · PSAX mitral plane</span><select data-k="v_psax_mv" data-opts="vq"></select></div>
+        <div class="vrow"><span class="v">3 · PSAX aortic level</span><select data-k="v_psax_av" data-opts="vq"></select></div>
+      </div>
+    </section>
+    <section class="sec" data-sec="path" data-w="half" data-title="1 · Obvious pathology" data-core="1">
+      <h2><span class="n">1</span>Obvious pathology</h2>
+      <div class="q"><label>LV cavity</label><select data-k="lv_size" data-opts="lvsize"></select></div>
+            <div class="q"><label>RV size (vs LV, A4C)</label><select data-k="rv_size" data-opts="rvsize"></select></div>
+      <div class="q"><label>Interventricular septum</label><select data-k="rv_sept" data-opts="sept"></select></div>
+      <div class="q"><label>Gross valve pathology</label><select data-k="valve_gross" data-opts="vgross"></select></div>
+      <div data-tpl="eye"></div>
+    </section>
+    <section class="sec" data-sec="dim" data-w="half" data-title="2 · Wall thickness &amp; dimensions" data-core="1">
+      <h2><span class="n">2</span>Wall thickness &amp; dimensions</h2>
+      <div class="tbl" data-rows="ivsd lvidd pwd lvids rvot_plax rv_basal la_ap la_a4c ao_sinus=Aorta_(sinus_of_Valsalva)"></div>
+      <dl class="interp"><dt>Geometry</dt><dd data-o="geom">—</dd></dl>
+    </section>
+    <section class="sec" data-sec="fn" data-w="half" data-title="3 · Biventricular function" data-core="1">
+      <h2><span class="n">3</span>Biventricular function</h2>
+      <div class="tbl" data-rows="fs ef_fs ef_vis epss mapse tapse"></div>
+      <div class="note">MSS/EPSS &gt;7 mm is sensitive for severe LV dysfunction (EF &lt;30%) but not specific; invalid with mitral stenosis, AR jet or abnormal mitral leaflets. MAPSE falls with age; &lt;8 mm usually indicates EF &lt;50%. Neither is graded.</div>
+      <div class="q"><label>LV systolic function (visual)</label><select data-k="lv_fn" data-opts="fn5"></select></div>
+      <div class="q"><label>Regional wall motion abnormality</label><select data-k="rwma" data-opts="rwma"></select></div>
+      <div class="q"><label>Segments / territory</label><input type="text" data-k="rwma_terr"></div>
+      <div class="q"><label>LV thrombus</label><select data-k="lv_thr" data-opts="thr"></select></div>
+      <div class="q"><label>LVOT obstruction / SAM</label><select data-k="lvoto" data-opts="yn"></select></div>
+      <div class="q"><label>RV systolic function (visual)</label><select data-k="rv_fn" data-opts="fn4"></select></div>
+    </section>
+    <section class="sec" data-sec="dia" data-w="half" data-title="Diastolic function">
+      <h2>Diastolic function<span class="hn">ASE 2025</span></h2>
+      <div class="tbl" data-rows="e_vel a_vel ea dt e_sep e_lat ee lav lavi lars pv_sd ivrt"></div>
+      <div class="dc"><span class="l">Confounders <i>(algorithm not valid; tick to apply)</i></span><span class="eb-opts">
+        <label class="ck"><input type="checkbox" data-k="dc_mr">Severe primary MR</label>
+        <label class="ck"><input type="checkbox" data-k="dc_mac">MAC ≥ moderate</label>
+        <label class="ck"><input type="checkbox" data-k="dc_ms">MS / MV prosthesis, repair or TEER</label>
+        <label class="ck"><input type="checkbox" data-k="dc_ncph">Non-cardiac PH</label>
+        <label class="ck"><input type="checkbox" data-k="dc_other">Constriction / transplant / LVAD</label>
+        <label class="ck"><input type="checkbox" data-k="dc_hr">HR &gt;100 / E–A fusion</label></span></div>
+      <dl class="interp"><dt>Grade</dt><dd data-o="dia">—</dd><dt>Basis</dt><dd data-o="dia_basis">—</dd></dl>
+      <div class="note">* DT range from the FATE card. DT lengthens with age, so &gt;240 ms can be normal in older adults; a short DT (&lt;160 ms) with reduced EF indicates restrictive filling. Diastolic grading: Nagueh SF et al. JASE 2025;38:537–69.</div>
+    </section>
+    <section class="sec" data-sec="rv" data-w="half" data-title="RV pressure, IVC &amp; RAP">
+      <h2>RVOT, pulmonary pressure &amp; RAP</h2>
+      <div class="tbl" data-rows="rvot_prox trv rvsp tapse_spap ivc_max ivc_min ivc_ci rap"></div>
+      <div data-tpl="rapsec"></div>
+      <dl class="interp"><dt>PH probability</dt><dd data-o="php">—</dd><dt>Basis</dt><dd data-o="php_basis">—</dd></dl>
+      <div class="note" data-o="ivc_note"></div>
+    </section>
+    <section class="sec" data-sec="ao" data-w="half" data-title="Aorta">
+      <h2>Aorta</h2>
+      <div class="tbl" data-rows="ao_ann ao_sinus"></div>
+      <div class="q"><label>Aorta (visual)</label><select data-k="ao_q" data-opts="aoq"></select></div>
+    </section>
+    <section class="sec" data-sec="flow" data-w="half" data-title="Flow &amp; output">
+      <h2>Flow &amp; output<span class="hn">LVOT method</span></h2>
+      <div class="tbl" data-rows="lvot_d lvot_vti sv svi co ci"></div>
+    </section>
+    <section class="sec" data-sec="as" data-w="half" data-title="Aortic valve stenosis">
+      <h2>Aortic valve — stenosis<label class="setall tgl"><input type="checkbox" data-k="as_tbl">Grading table</label></h2>
+      <div class="tbl" data-rows="~lvot_d ~lvot_vti ~sv ~svi av_vmax av_ppg av_mpg av_vti ava avai dvi"></div>
+      <dl class="interp"><dt>AS</dt><dd data-o="as_sum">—</dd><dt>Flow</dt><dd data-o="as_flow">—</dd></dl>
+      <div data-tpl="asgrade"></div>
+    </section>
+    <section class="sec" data-sec="ms" data-w="half" data-title="Mitral valve stenosis">
+      <h2>Mitral valve — stenosis</h2>
+      <div class="tbl" data-rows="mv_mpg mv_pht mva"></div>
+    </section>
+    <section class="sec" data-sec="valves" data-w="full" data-title="Valves — morphology &amp; regurgitation">
+      <h2>Valves — morphology &amp; regurgitation<span class="hn">VC = vena contracta · ESC/EACTS 2025</span></h2>
+      <div class="vt">
+          <span class="hd">Valve</span><span class="hd">Morphology</span><span class="hd">Stenosis</span><span class="hd">Regurgitation</span><span class="hd">VC mm</span><span class="hd">VC grade</span>
+          <span class="vn">Aortic</span><select data-k="av_m" data-opts="avm"></select><span class="sten" data-o="as_short">—</span><select data-k="ar_g" data-opts="rg"></select><input type="number" inputmode="decimal" step="any" data-k="ar_vc" aria-label="AR vena contracta"><span data-o="ar_vc_f"></span>
+          <span class="vn">Mitral</span><select data-k="mv_m" data-opts="mvm"></select><span class="sten" data-o="ms_short">—</span><select data-k="mr_g" data-opts="rg"></select><input type="number" inputmode="decimal" step="any" data-k="mr_vc" aria-label="MR vena contracta"><span data-o="mr_vc_f"></span>
+          <span class="vn">Tricuspid</span><select data-k="tv_m" data-opts="tvm"></select><span class="sten">—</span><select data-k="tr_g" data-opts="rgtr"></select><input type="number" inputmode="decimal" step="any" data-k="tr_vc" aria-label="TR vena contracta"><span data-o="tr_vc_f"></span>
+          <span class="vn">Pulmonary</span><select data-k="pv_m" data-opts="pvm"></select><span class="sten">—</span><select data-k="pr_g" data-opts="rg"></select><span class="sten">—</span><span></span>
+        </div>
+        <div class="q"><label>MR mechanism</label><select data-k="mr_mech" data-opts="mrmech"></select></div>
+        <div class="note">VC grading (ESC/EACTS 2025): AR mild &lt;3, intermediate 3–6, severe &gt;6 mm · MR mild &lt;3, intermediate 3–6.9, severe ≥7 mm · TR mild &lt;3, moderate 3–6.9, severe 7–13.9, massive 14–20.9, torrential ≥21 mm. An intermediate AR/MR VC cannot separate moderate from severe; confirm on formal echo. VC is unreliable with multiple or very eccentric jets, and single-plane VC underestimates the elliptical orifice of secondary MR.</div>
+    </section>
+    <section class="sec" data-sec="peri" data-w="half" data-title="4 · Pericardium &amp; pleura" data-core="1">
+      <h2><span class="n">4</span>Pericardium &amp; pleura</h2>
+      <div class="q"><label>Pericardial effusion</label><select data-k="peff" data-opts="peff"></select></div>
+      <div class="q"><label>Tamponade features</label><select data-k="tamp" data-opts="tamp"></select></div>
+      <div class="q q3 hd"><span></span><span>Right</span><span>Left</span></div>
+      <div class="q q3"><span class="l">Lung sliding</span><select data-k="pl_r_slide" data-opts="slide"></select><select data-k="pl_l_slide" data-opts="slide"></select></div>
+      <div class="q q3"><span class="l">Pleural effusion</span><select data-k="pl_r_eff" data-opts="pleff"></select><select data-k="pl_l_eff" data-opts="pleff"></select></div>
+      <div class="q q3"><span class="l">Pattern</span><select data-k="pl_r_pat" data-opts="lpat"></select><select data-k="pl_l_pat" data-opts="lpat"></select></div>
+    </section>
+    <section class="sec" data-sec="ctx" data-w="half" data-title="5 · Clinical context" data-core="1">
+      <h2><span class="n">5</span>Relate to clinical context</h2>
+      <div class="q"><label>Clinical question</label><input type="text" data-k="cq"></div>
+      <div class="q"><label>Haemodynamic picture</label><select data-k="ph" data-opts="ph"></select></div>
+      <div class="q"><label>Fluid responsiveness</label><select data-k="fr" data-opts="fr"></select></div>
+    </section>
+    <section class="sec" data-sec="study" data-w="half" data-title="6 · Additional ultrasound &amp; study details" data-core="1">
+      <h2><span class="n">6</span>Additional ultrasound &amp; study details</h2>
+      <div class="q"><label>Other POCUS (eg gastric, DVT)</label><input type="text" data-k="other_us"></div>
+      <div class="q"><label>Limitations</label><input type="text" data-k="limits"></div>
+      <div class="q"><label>Comparison with previous</label><input type="text" data-k="prev"></div>
+      <div class="q"><label>Formal echocardiography</label><select data-k="formal" data-opts="formal"></select></div>
+    </section>
+    <section class="sec grow" data-sec="concl" data-w="full" data-fixed="1">
+      <h2>Conclusion &amp; recommendations<button type="button" class="setall" data-concl-add>Add findings to conclusion</button></h2>
+      <textarea class="ta" data-k="concl" placeholder="Numbered key findings, then the answer to the clinical question."></textarea>
+      <div data-tpl="sig"></div>
+    </section>
+  </div>
+</section>
+
+<!-- ===================== ECHOCARDIOGRAM REPORT ===================== -->
+<section class="view" data-view="adv">
+  <article class="sheet">
+    <div data-tpl="head" data-eyebrow="Transthoracic echocardiography · ASE/EACVI quantification" data-title="Echocardiogram Report" data-rid="TTE"></div>
+    <div data-tpl="pt"></div>
+    <div data-tpl="bsawarn"></div>
+    <div class="body">
+      <section class="sec">
+        <h2>Views obtained<span class="hn">Image quality per view</span><button type="button" class="setall" data-setall>Set all to Good</button></h2>
+        <div class="vg">
+          <div class="vrow"><span class="v">PLAX</span><select data-k="v_plax" data-opts="vq"></select></div>
+          <div class="vrow"><span class="v">RV inflow</span><select data-k="v_rvin" data-opts="vq"></select></div>
+          <div class="vrow"><span class="v">PSAX — AV level</span><select data-k="v_psax_av" data-opts="vq"></select></div>
+          <div class="vrow"><span class="v">PSAX — MV/PM/apex</span><select data-k="v_psax" data-opts="vq"></select></div>
+          <div class="vrow"><span class="v">Apical 4-chamber</span><select data-k="v_a4c" data-opts="vq"></select></div>
+          <div class="vrow"><span class="v">RV-focused A4C</span><select data-k="v_rva4c" data-opts="vq"></select></div>
+          <div class="vrow"><span class="v">Apical 5-chamber</span><select data-k="v_a5c" data-opts="vq"></select></div>
+          <div class="vrow"><span class="v">Apical 2-chamber</span><select data-k="v_a2c" data-opts="vq"></select></div>
+          <div class="vrow"><span class="v">Apical 3-ch (ALAX)</span><select data-k="v_a3c" data-opts="vq"></select></div>
+          <div class="vrow"><span class="v">Subcostal 4-chamber</span><select data-k="v_sc4c" data-opts="vq"></select></div>
+          <div class="vrow"><span class="v">Subcostal IVC</span><select data-k="v_ivc" data-opts="vq"></select></div>
+          <div class="vrow"><span class="v">Suprasternal</span><select data-k="v_ssn" data-opts="vq"></select></div>
+        </div>
+      </section>
+
+      <div class="cols">
+        <section class="sec">
+          <h2>Left ventricle<span class="hn">Size, mass, systolic function</span></h2>
+          <div class="tbl" data-rows="lvidd lvids ivsd pwd rwt lvm lvmi lvedv lvedvi lvesv lvesvi ef_bp ef_vis gls"></div>
+          <dl class="interp"><dt>Geometry</dt><dd data-o="geom">—</dd></dl>
+          <div class="q"><label>LV systolic function (visual)</label><select data-k="lv_fn" data-opts="fn5"></select></div>
+          <div class="q"><label>Regional wall motion abnormality</label><select data-k="rwma" data-opts="rwma"></select></div>
+          <div class="q"><label>Segments / territory</label><input type="text" data-k="rwma_terr"></div>
+          <div class="q"><label>LV thrombus</label><select data-k="lv_thr" data-opts="thr"></select></div>
+          <div class="q"><label>LVOT obstruction / SAM</label><select data-k="lvoto" data-opts="yn"></select></div>
+        </section>
+        <div class="stack">
+          <section class="sec">
+            <h2>Diastolic function<span class="hn">ASE 2025 algorithm</span></h2>
+            <div class="tbl" data-rows="e_vel a_vel ea dt e_sep e_lat ee lars pv_sd ivrt"></div>
+                  <div class="dc"><span class="l">Confounders <i>(algorithm not valid; tick to apply)</i></span><span class="eb-opts">
+        <label class="ck"><input type="checkbox" data-k="dc_mr">Severe primary MR</label>
+        <label class="ck"><input type="checkbox" data-k="dc_mac">MAC ≥ moderate</label>
+        <label class="ck"><input type="checkbox" data-k="dc_ms">MS / MV prosthesis, repair or TEER</label>
+        <label class="ck"><input type="checkbox" data-k="dc_ncph">Non-cardiac PH</label>
+        <label class="ck"><input type="checkbox" data-k="dc_other">Constriction / transplant / LVAD</label>
+        <label class="ck"><input type="checkbox" data-k="dc_hr">HR &gt;100 / E–A fusion</label></span></div>
+            <dl class="interp"><dt>Grade</dt><dd data-o="dia">—</dd><dt>Basis</dt><dd data-o="dia_basis">—</dd></dl>
+            <div class="note">* DT range from the FATE card. DT lengthens with age, so &gt;240 ms can be normal in older adults; a short DT (&lt;160 ms) with reduced EF indicates restrictive filling. Diastolic grading: Nagueh SF et al. JASE 2025;38:537–69.</div>
+          </section>
+          <section class="sec">
+            <h2>Atria &amp; septum</h2>
+            <div class="tbl" data-rows="la_ap lav lavi rav ravi"></div>
+            <div class="q"><label>Interatrial septum</label><select data-k="ias" data-opts="ias"></select></div>
+          </section>
+        </div>
+      </div>
+      <section class="sec grow">
+        <h2>Additional findings<span class="hn">Wall-motion detail, masses, devices, extracardiac</span></h2>
+        <textarea class="ta" data-k="adv_notes" placeholder="Free text"></textarea>
+      </section>
+    </div>
+    <footer class="sh-foot">
+      <div class="refs"><b>L</b> Lang RM et al. Cardiac chamber quantification. J Am Soc Echocardiogr 2015;28:1–39 / Eur Heart J Cardiovasc Imaging 2015;16:233–71 (sex-specific; volumes and mass indexed to BSA). <b>A</b> Nagueh SF et al. LV diastolic function. J Am Soc Echocardiogr 2025;38:537–69. <b>F</b> FATE card 2020, USabcd. LV mass: linear method, 0.8 × 1.04 × [(IVSd + LVIDd + PWd)³ − LVIDd³] + 0.6 g.</div>
+      <div class="disc">Values outside reference ranges are flagged for review. Interpret with the clinical picture and image quality.</div>
+      <div class="stamp">Generated <span data-ts></span> · Page 1 of 3</div>
+    </footer>
+  </article>
+
+  <article class="sheet">
+    <div data-tpl="head" data-eyebrow="Transthoracic echocardiography · continued" data-title="Echocardiogram Report" data-rid="TTE"></div>
+    <div data-tpl="ptmini"></div>
+    <div class="body">
+      <div class="cols">
+        <div class="stack">
+          <section class="sec">
+            <h2>Right ventricle &amp; pulmonary pressure</h2>
+            <div class="tbl" data-rows="rv_basal rv_mid rv_long rvot_plax rvot_prox rv_wall tapse rv_s rv_fac rv_fws trv rvsp tapse_spap rvot_at pa_d"></div>
+            <div class="q"><label>Mid-systolic RVOT Doppler notching</label><select data-k="pa_notch" data-opts="yn"></select></div>
+            <dl class="interp"><dt>PH probability</dt><dd data-o="php">—</dd><dt>Basis</dt><dd data-o="php_basis">—</dd></dl>
+            <div class="q"><label>RV size</label><select data-k="rv_size" data-opts="rvsize"></select></div>
+            <div class="q"><label>RV systolic function</label><select data-k="rv_fn" data-opts="fn4"></select></div>
+            <div class="q"><label>Septum</label><select data-k="rv_sept" data-opts="sept"></select></div>
+            <div class="q"><label>McConnell sign</label><select data-k="mcconnell" data-opts="yn"></select></div>
+          </section>
+          <section class="sec">
+            <h2>IVC &amp; right atrial pressure</h2>
+            <div class="tbl" data-rows="ivc_max ivc_min ivc_ci rap"></div>
+            <div data-tpl="rapsec"></div>
+            <div class="note" data-o="ivc_note"></div>
+          </section>
+        </div>
+        <div class="stack">
+          <section class="sec">
+            <h2>Aorta</h2>
+            <div class="tbl" data-rows="ao_ann ao_sinus ao_stj ao_asc"></div>
+            <div class="q"><label>Aorta (visual)</label><select data-k="ao_q" data-opts="aoq"></select></div>
+          </section>
+          <section class="sec">
+            <h2>Flow &amp; output<span class="hn">LVOT method, HR from header</span></h2>
+            <div class="tbl" data-rows="lvot_d lvot_vti sv svi co ci"></div>
+          </section>
+          <section class="sec">
+            <h2>Aortic valve — stenosis<label class="setall tgl"><input type="checkbox" data-k="as_tbl">Grading table</label></h2>
+            <div class="tbl" data-rows="av_vmax av_ppg av_mpg av_vti ava avai dvi"></div>
+            <dl class="interp"><dt>AS</dt><dd data-o="as_sum">—</dd><dt>Flow</dt><dd data-o="as_flow">—</dd></dl>
+            <div data-tpl="asgrade"></div>
+          </section>
+          <section class="sec">
+            <h2>Mitral valve — stenosis</h2>
+            <div class="tbl" data-rows="mv_mpg mv_pht mva"></div>
+          </section>
+        </div>
+      </div>
+
+    </div>
+    <footer class="sh-foot">
+      <div class="refs"><b>L</b> Lang 2015 (as page 1). <b>A</b> Mukherjee M et al. Right heart. J Am Soc Echocardiogr 2025;38:141–86 (TAPSE, RV basal diameter, TAPSE/sPAP, IVC/RAP). Baumgartner H et al. Aortic stenosis. J Am Soc Echocardiogr 2017;30:372–92. Baumgartner H et al. Valve stenosis (MS). J Am Soc Echocardiogr 2009;22:1–23. Humbert M et al. 2022 ESC/ERS PH guidelines. Eur Heart J 2022;43:3618–731 (TR velocity, PH probability).</div>
+      <div class="disc">Stenosis grades assume normal flow; check SVi and LVOT measurement when indices disagree.</div>
+      <div class="stamp">Generated <span data-ts></span> · Page 2 of 3</div>
+    </footer>
+  </article>
+
+  <article class="sheet">
+    <div data-tpl="head" data-eyebrow="Transthoracic echocardiography · continued" data-title="Echocardiogram Report" data-rid="TTE"></div>
+    <div data-tpl="ptmini"></div>
+    <div class="body">
+      <section class="sec">
+        <h2>Valves — morphology &amp; regurgitation<span class="hn">VC = vena contracta · ESC/EACTS 2025</span></h2>
+        <div class="vt">
+          <span class="hd">Valve</span><span class="hd">Morphology</span><span class="hd">Stenosis</span><span class="hd">Regurgitation</span><span class="hd">VC mm</span><span class="hd">VC grade</span>
+          <span class="vn">Aortic</span><select data-k="av_m" data-opts="avm"></select><span class="sten" data-o="as_short">—</span><select data-k="ar_g" data-opts="rg"></select><input type="number" inputmode="decimal" step="any" data-k="ar_vc" aria-label="AR vena contracta"><span data-o="ar_vc_f"></span>
+          <span class="vn">Mitral</span><select data-k="mv_m" data-opts="mvm"></select><span class="sten" data-o="ms_short">—</span><select data-k="mr_g" data-opts="rg"></select><input type="number" inputmode="decimal" step="any" data-k="mr_vc" aria-label="MR vena contracta"><span data-o="mr_vc_f"></span>
+          <span class="vn">Tricuspid</span><select data-k="tv_m" data-opts="tvm"></select><span class="sten">—</span><select data-k="tr_g" data-opts="rgtr"></select><input type="number" inputmode="decimal" step="any" data-k="tr_vc" aria-label="TR vena contracta"><span data-o="tr_vc_f"></span>
+          <span class="vn">Pulmonary</span><select data-k="pv_m" data-opts="pvm"></select><span class="sten">—</span><select data-k="pr_g" data-opts="rg"></select><span class="sten">—</span><span></span>
+        </div>
+        <div class="q"><label>MR mechanism</label><select data-k="mr_mech" data-opts="mrmech"></select></div>
+        <div class="note">VC grading (ESC/EACTS 2025): AR mild &lt;3, intermediate 3–6, severe &gt;6 mm · MR mild &lt;3, intermediate 3–6.9, severe ≥7 mm · TR mild &lt;3, moderate 3–6.9, severe 7–13.9, massive 14–20.9, torrential ≥21 mm. An intermediate AR/MR VC cannot separate moderate from severe; confirm on formal echo. VC is unreliable with multiple or very eccentric jets, and single-plane VC underestimates the elliptical orifice of secondary MR.</div>
+      </section>
+
+      <div class="cols">
+        <section class="sec">
+          <h2>Pericardium &amp; pleura</h2>
+          <div class="q"><label>Pericardial effusion</label><select data-k="peff" data-opts="peff"></select></div>
+          <div class="q"><label>Tamponade features</label><select data-k="tamp" data-opts="tamp"></select></div>
+          <div class="q q3"><span class="l">Pleural effusion (R / L)</span><select data-k="pl_r_eff" data-opts="pleff"></select><select data-k="pl_l_eff" data-opts="pleff"></select></div>
+        </section>
+        <section class="sec">
+          <h2>Study details</h2>
+          <div class="q"><label>Limitations</label><input type="text" data-k="limits"></div>
+          <div class="q"><label>Comparison with previous</label><input type="text" data-k="prev"></div>
+          <div class="q"><label>Formal echocardiography</label><select data-k="formal" data-opts="formal"></select></div>
+        </section>
+      </div>
+
+      <section class="sec grow">
+        <h2>Conclusion<button type="button" class="setall" data-concl-add>Add findings to conclusion</button></h2>
+        <textarea class="ta" data-k="concl" placeholder="Numbered key findings, then the answer to the clinical question."></textarea>
+      </section>
+      <div data-tpl="sig"></div>
+    </div>
+    <footer class="sh-foot">
+      <div class="refs"><b>L</b> Lang 2015 (as page 1). <b>A</b> Mukherjee M et al. Right heart. J Am Soc Echocardiogr 2025;38:141–86 (TAPSE, RV basal diameter, TAPSE/sPAP, IVC/RAP). Baumgartner H et al. Aortic stenosis. J Am Soc Echocardiogr 2017;30:372–92. Baumgartner H et al. Valve stenosis (MS). J Am Soc Echocardiogr 2009;22:1–23. <b>E</b> Praz F et al. 2025 ESC/EACTS VHD guidelines. Eur Heart J 2025;46:4635–736 (regurgitation); Hahn RT, Zamorano JL. Eur Heart J Cardiovasc Imaging 2017;18:1342–3 (5-grade TR). Humbert M et al. 2022 ESC/ERS PH guidelines. Eur Heart J 2022;43:3618–731 (TR velocity, PH probability).</div>
+      <div class="disc">Stenosis grades assume normal flow; check SVi and LVOT measurement when indices disagree.</div>
+      <div class="stamp">Generated <span data-ts></span> · Page 3 of 3</div>
+    </footer>
+  </article>
+</section>
+
+<!-- ===================== FATE CARD ===================== -->
+<section class="view" data-view="card">
+  <article class="sheet">
+    <header class="sh-head">
+      <div class="org"><div class="org-name">Focus Assessed Transthoracic Echo</div><div class="org-sub">Quick reference transcribed from the FATE card (USabcd, 2020)</div></div>
+      <div class="ttl"><div class="eyebrow">Reference · Basic &amp; extended FATE</div><h1>FATE Card — Quick Reference</h1></div>
+      <dl class="ids"><dt>Source</dt><dd>usabcd.org</dd><dt>Version</dt><dd>FATE card 2020</dd></dl>
+    </header>
+    <a class="cardlink" href="https://usabcd.org/wp-content/uploads/FATEmedia/FATEcard2020.pdf" target="_blank" rel="noopener">
+      <span class="cl-k">Original FATE card (PDF)</span>
+      <span class="cl-u">usabcd.org/wp-content/uploads/FATEmedia/FATEcard2020.pdf</span>
+      <span class="cl-n">View images, pathology examples and the authoritative version · © USabcd</span>
+    </a>
+    <div class="body">
+      <div class="card-grid">
+        <section class="sec">
+          <h2>Scanning positions<span class="hn">Scan 1–4 in the most favourable order</span></h2>
+          <div class="torso">
+            <svg viewBox="0 0 200 230" role="img" aria-label="Chest diagram showing FATE probe positions 1 to 4">
+              <path d="M78 18 Q100 28 122 18 L160 34 Q176 42 174 66 L166 206 Q100 222 34 206 L26 66 Q24 42 40 34 Z" fill="#f4f6f8" stroke="#46525e" stroke-width="1.4"/>
+              <path d="M88 18 Q100 8 112 18" fill="none" stroke="#46525e" stroke-width="1.4"/>
+              <line x1="100" y1="44" x2="100" y2="124" stroke="#9aa5af" stroke-width="3" stroke-linecap="round"/>
+              <path d="M60 90 Q80 104 100 98 M140 90 Q120 104 100 98" fill="none" stroke="#c8d0d7" stroke-width="1"/>
+              <path d="M56 120 Q78 136 100 128 M144 120 Q122 136 100 128" fill="none" stroke="#c8d0d7" stroke-width="1"/>
+              <circle cx="72" cy="92" r="2.2" fill="#9aa5af"/><circle cx="128" cy="92" r="2.2" fill="#9aa5af"/>
+              <path d="M112 66 Q132 76 140 108 Q130 118 112 104 Z" fill="#f2c9cf" stroke="#8a1c2b" stroke-width="1" opacity=".85"/>
+              <g font-family="IBM Plex Sans Condensed, Arial Narrow, Arial, sans-serif" font-size="11" font-weight="700" text-anchor="middle">
+                <circle cx="104" cy="146" r="9" fill="#8a1c2b"/><text x="104" y="150" fill="#ffffff">1</text>
+                <circle cx="148" cy="116" r="9" fill="#8a1c2b"/><text x="148" y="120" fill="#ffffff">2</text>
+                <circle cx="115" cy="62" r="9" fill="#8a1c2b"/><text x="115" y="66" fill="#ffffff">3</text>
+                <circle cx="36" cy="156" r="9" fill="#2d5b84"/><text x="36" y="160" fill="#ffffff">4</text>
+                <circle cx="164" cy="156" r="9" fill="#2d5b84"/><text x="164" y="160" fill="#ffffff">4</text>
+              </g>
+              <g font-family="IBM Plex Sans Condensed, Arial Narrow, Arial, sans-serif" font-size="10" fill="#76818c" text-anchor="middle">
+                <text x="14" y="58">R</text><text x="186" y="58">L</text>
+              </g>
+            </svg>
+            <table class="ref">
+              <thead><tr><th>Pos</th><th>Basic view</th><th>Marker</th></tr></thead>
+              <tbody>
+                <tr><td class="num">1</td><td>Subcostal 4-chamber</td><td>Patient's left</td></tr>
+                <tr><td class="num">2</td><td>Apical 4-chamber</td><td>Patient's left</td></tr>
+                <tr><td class="num">3</td><td>Parasternal long axis</td><td>Right shoulder</td></tr>
+                <tr><td class="num">3</td><td>Parasternal short axis (LV)</td><td>Left shoulder</td></tr>
+                <tr><td class="num">4</td><td>Pleural scan, each side (liver/spleen, diaphragm, lung)</td><td>Cranial</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="sub">Extended FATE views</div>
+          <table class="ref">
+            <tbody>
+              <tr><td class="num">1</td><td>Subcostal IVC (RA, IVC, liver)</td></tr>
+              <tr><td class="num">2</td><td>Apical 5-chamber · apical 2-chamber · apical long axis</td></tr>
+              <tr><td class="num">3</td><td>Parasternal short axis at mitral plane · at aortic valve level</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="sec">
+          <h2>The FATE sequence</h2>
+          <ol class="steps">
+            <li><span>1</span>Look for obvious pathology</li>
+            <li><span>2</span>Assess wall thickness and chamber dimensions</li>
+            <li><span>3</span>Assess biventricular function</li>
+            <li><span>4</span>Image the pleura on both sides</li>
+            <li><span>5</span>Relate the findings to the clinical context</li>
+            <li><span>6</span>Apply additional ultrasound as needed</li>
+          </ol>
+          <div class="sub">Determinants of global cardiac function (each ventricle)</div>
+          <div class="det">
+            <span class="h"></span><span class="h">Systole</span><span class="h">Diastole</span>
+            <span class="h">LV &amp; RV</span><span>Preload · afterload · contractility · heart rate</span><span>Compliance · relaxation · heart rate</span>
+          </div>
+          <p class="note">In haemodynamic instability, evaluate these determinants systematically, along with concomitant pathology: pericardial effusion, pulmonary embolus, pleural effusion, pneumothorax, valve disease, dissection, septal defects.</p>
+        </section>
+      </div>
+
+      <div class="card-grid">
+        <section class="sec">
+          <h2>Normal dimensions<span class="hn">PLAX, M-mode</span></h2>
+          <table class="ref">
+            <thead><tr><th>Structure</th><th>FATE card</th><th>Lang 2015 (♂ / ♀)</th></tr></thead>
+            <tbody>
+              <tr><td>RV free wall</td><td class="num">≤5 mm</td><td class="num">≤5 mm</td></tr>
+              <tr><td>RV (PLAX)</td><td class="num">20–30 mm</td><td class="num">20–30 mm (RVOT)</td></tr>
+              <tr><td>IVS and PW, diastole</td><td class="num">6–10 mm</td><td class="num">6–10 / 6–9 mm</td></tr>
+              <tr><td>LVDd (LVIDd)</td><td class="num">35–55 mm</td><td class="num">42–58 / 38–52 mm</td></tr>
+              <tr><td>LVSd (LVIDs)</td><td class="num">20–40 mm</td><td class="num">25–40 / 22–35 mm</td></tr>
+              <tr><td>LA diameter</td><td class="num">≤35 mm</td><td class="num">30–40 / 27–38 mm</td></tr>
+              <tr><td>Aortic root</td><td class="num">≤35 mm</td><td class="num">≤40 / ≤36 mm (sinuses)</td></tr>
+              <tr><td>Mitral–septal separation</td><td class="num">&lt;10 mm</td><td class="num">—</td></tr>
+            </tbody>
+          </table>
+          <p class="note">FS = (LVDd − LVSd) / LVDd. The card approximates EF as 2 × FS. M-mode timing: LVDd at QRS onset; LVSd at maximal posterior wall contraction.</p>
+        </section>
+        <section class="sec">
+          <h2>Systolic ventricular function</h2>
+          <table class="ref grade">
+            <thead><tr><th>Measure</th><th>View</th><th>Normal</th><th>Mild</th><th>Moderate</th><th>Severe</th></tr></thead>
+            <tbody>
+              <tr><td>LV EF %</td><td>PLAX</td><td class="num">≥55</td><td class="num">45–54</td><td class="num">30–44</td><td class="num">&lt;30</td></tr>
+              <tr><td>LV FS %</td><td>PLAX</td><td class="num">≥25</td><td class="num">20–24</td><td class="num">15–19</td><td class="num">&lt;15</td></tr>
+              <tr><td>MSS mm</td><td>PLAX</td><td class="num">&lt;10</td><td class="num">7–12</td><td class="num">13–24</td><td class="num">&gt;24</td></tr>
+              <tr><td>MAPSE mm</td><td>A4C</td><td class="num">≥11</td><td class="num">9–10</td><td class="num">6–8</td><td class="num">&lt;6</td></tr>
+              <tr><td>TAPSE mm</td><td>A4C</td><td class="num">16–20</td><td class="num">11–15</td><td class="num">6–10</td><td class="num">&lt;6</td></tr>
+            </tbody>
+          </table>
+          <p class="note">Eyeball both ventricles in all views. The report grades TAPSE by ASE 2025 (normal &gt;17; mild 13–17; moderate 10–13; severe ≤10 mm), flags MSS above 7 mm (McKaigney 2014) and MAPSE below 11 mm without grading, and uses Lang 2015 EF limits for the FS-derived EF.</p>
+        </section>
+      </div>
+
+      <div class="card-grid">
+        <section class="sec">
+          <h2>Doppler &amp; IVC (extended)</h2>
+          <table class="ref">
+            <tbody>
+              <tr><td>CW peak gradient</td><td class="num">ΔP = 4V²</td></tr>
+              <tr><td>CW peak velocity</td><td class="num">AV &lt;2 m/s · PV &lt;1 m/s · TR &lt;2.5 m/s</td></tr>
+              <tr><td>PW mitral inflow</td><td class="num">DT 140–240 ms · E &lt;1.2 m/s · E/A &gt;1 (age-dependent)</td></tr>
+              <tr><td>Tissue Doppler</td><td class="num">E/e′ &lt;8–10</td></tr>
+              <tr><td>IVC</td><td class="num">&lt;20 mm, ≈50% inspiratory collapse</td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section class="sec">
+          <h2>Important pathology — consider</h2>
+          <table class="ref">
+            <tbody>
+              <tr><td><b>Pericardial effusion</b></td><td>After cardiac surgery or catheterisation, trauma, renal failure, infection</td></tr>
+              <tr><td><b>Dilated RA / RV</b></td><td>Pulmonary embolus, RV infarction, pulmonary hypertension, volume overload</td></tr>
+              <tr><td><b>Dilated LV / LA</b></td><td>Ischaemic heart disease, dilated cardiomyopathy, sepsis, volume overload, aortic regurgitation</td></tr>
+              <tr><td><b>LV hypertrophy</b></td><td>Aortic stenosis, hypertension, LVOT obstruction, hypertrophic cardiomyopathy, infiltrative disease</td></tr>
+            </tbody>
+          </table>
+        </section>
+      </div>
+
+      <div class="attrib">
+        <b>Attribution.</b> Content on this page is transcribed and adapted from the <b>FATE card</b> (2020 edition) published by USabcd, with the original protocol described in Jensen MB, Sloth E, Larsen KM, Schmidt MB. Transthoracic echocardiography for cardiopulmonary monitoring in intensive care. <i>Eur J Anaesthesiol</i> 2004;21:700–707. Original card and training material: <a href="https://usabcd.org/wp-content/uploads/FATEmedia/FATEcard2020.pdf">usabcd.org/wp-content/uploads/FATEmedia/FATEcard2020.pdf</a>. The card's authors accept no responsibility for its use. The card's view images and pathology examples are not reproduced here; see the original card.
+      </div>
+    </div>
+    <footer class="sh-foot">
+      <div class="refs"><b>Lang 2015</b> columns: Lang RM et al. J Am Soc Echocardiogr 2015;28:1–39 / Eur Heart J Cardiovasc Imaging 2015;16:233–71.</div>
+      <div class="disc">Teaching reference. Check the original card for the authoritative version.</div>
+      <div class="stamp">Generated <span data-ts></span> · Page 1 of 1</div>
+    </footer>
+  </article>
+
+</section>
+</main>
+
+<script>
+(function(){
+"use strict";
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const STORE='fate-echo-report-v1';
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let S={}; let AGE=NaN;
+
+/* ---------- option lists ---------- */
+const OPTS={
+  vq:['Good','Adequate','Poor','Not obtained'],
+  peff:['None','Small (<10 mm)','Moderate (10–20 mm)','Large (>20 mm)','Loculated'],
+  tamp:['Absent','RA systolic collapse','RV diastolic collapse','Plethoric IVC only','Multiple features'],
+  lvsize:['Normal','Small / underfilled','Dilated'],
+  lvwall:['Normal','Concentric hypertrophy','Asymmetric septal hypertrophy'],
+  rvsize:['Normal (RV:LV < 0.6)','Dilated (RV:LV < 1)','Severely dilated (RV:LV ≥ 1)'],
+  sept:['Normal','Systolic flattening (pressure)','Diastolic flattening (volume)','Flattening throughout cycle','Paradoxical motion'],
+  vgross:['None seen','Suspected — see conclusion','Prosthetic valve'],
+  aoq:['Normal','Dilated','Intimal flap suspected','Not assessed'],
+  fn5:['Hyperdynamic','Normal','Mildly reduced','Moderately reduced','Severely reduced'],
+  fn4:['Normal','Mildly reduced','Moderately reduced','Severely reduced'],
+  rwma:['None seen','Present','Not assessable'],
+  slide:['Present','Absent','Lung point seen','Not assessed'],
+  pleff:['None','Small','Moderate','Large'],
+  lpat:['A-lines','B-lines (≥3 per space)','Consolidation','Not assessed'],
+  ph:['No major abnormality','Hypovolaemia / low preload','LV systolic failure','RV failure / pressure overload','Pericardial tamponade','Hyperdynamic / low afterload','Significant valve lesion','Mixed / other'],
+  fr:['Likely','Unlikely','Indeterminate','Not assessed'],
+  formal:['Not required','Recommended','Urgent'],
+  thr:['Not seen','Uncertain','Present','Not assessable'],
+  yn:['No','Yes'],
+  ias:['Intact on colour Doppler','Aneurysmal','Shunt suspected','Not assessed'],
+  avm:['Trileaflet, normal','Sclerotic','Calcified, restricted','Bicuspid','Prosthetic','Not well seen'],
+  mvm:['Normal leaflets','Thickened','Annular calcification','Rheumatic','Prolapse','Flail segment','Prosthetic / repair','Not well seen'],
+  tvm:['Normal','Thickened','Prolapse','Device lead','Not well seen'],
+  pvm:['Normal','Abnormal','Not well seen'],
+  rg:['None / trace','Mild','Moderate','Severe','Not assessed'],
+  rgtr:['None / trace','Mild','Moderate','Severe','Massive','Torrential','Not assessed'],
+  mrmech:['Primary (organic)','Secondary — ventricular','Secondary — atrial','Mixed','Uncertain'],
+  rapsec:['Not assessed','Absent','Present']
+};
+
+/* ---------- reference helpers ---------- */
+const SX=(c,m,f)=>c.sex==='M'?m:c.sex==='F'?f:null;
+const rr=p=>p[0]!=null?`${p[0]}–${p[1]}`:`≤${p[1]}`;
+function part(v,p,lab){
+  if(p[0]!=null&&v<p[0])return['info','Below ref'];
+  if(v<=p[1])return['ok','Normal'];
+  if(p[2]==null)return['m2',lab||'Increased'];
+  if(v<=p[2])return['m1','Mild ↑'];
+  if(v<=p[3])return['m2','Moderate ↑'];
+  return['sev','Severe ↑'];
+}
+const sx=(m,f,lab)=>({ref:c=>{const p=SX(c,m,f);return p?rr(p):`♂${rr(m)} ♀${rr(f)}`},g:(v,c)=>{const p=SX(c,m,f);return p?part(v,p,lab):['na','Set sex']}});
+const fixed=(p,lab)=>({ref:()=>rr(p),g:v=>part(v,p,lab)});
+/* ASE 2025 right-heart grades (Mukherjee et al. JASE 2025, Table 1) */
+const tapseG=v=>v>17?['ok','Normal']:v>=13?['m1','Mild ↓']:v>10?['m2','Moderate ↓']:['sev','Severe ↓'];
+const rvbG=v=>v<41?['ok','Normal']:v<=44?['m1','Mild ↑']:v<=49?['m2','Moderate ↑']:['sev','Severe ↑'];
+const lowG=(n,m1,m2)=>v=>v>=n?['ok','Normal']:m1==null?['m2','Reduced']:v>=m1?['m1','Mild ↓']:v>=m2?['m2','Moderate ↓']:['sev','Severe ↓'];
+const efRef=c=>SX(c,'52–72','54–74')||'♂52–72 ♀54–74';
+const efG=(v,c)=>{const lo=SX(c,52,54)??53,hi=SX(c,72,74)??73;
+  if(v>hi)return['info','Hyperdynamic'];if(v>=lo)return['ok','Normal'];if(v>=41)return['m1','Mild ↓'];if(v>=30)return['m2','Moderate ↓'];return['sev','Severe ↓']};
+const eeThr=D=>D&&D.eeBasis==='septal only'?15:D&&D.eeBasis==='lateral only'?13:14; // ASE 2025: septal ≥15, lateral ≥13, average ≥14
+const vcG=sev=>v=>v<3?['ok','Mild range']:v<sev?['m1','Intermediate']:['sev','Severe range'];
+
+/* ---------- measurement specs (mm unless stated) ---------- */
+const SPEC={
+  ivsd:{l:'IVSd (septum)',u:'mm',src:'L',...sx([6,10,13,16],[6,9,12,15])},
+  pwd:{l:'PWd (posterior wall)',u:'mm',src:'L',...sx([6,10,13,16],[6,9,12,15])},
+  lvidd:{l:'LVIDd (LV diastole)',u:'mm',src:'L',...sx([42,58.4,63,68],[37.8,52.2,56.2,61.2])},
+  lvids:{l:'LVIDs (LV systole)',u:'mm',src:'L',...sx([25,39.8],[21.6,34.8],'Dilated')},
+  rvot_plax:{l:'RVOT (PLAX)',u:'mm',src:'L',...fixed([20,30],'Dilated')},
+  la_ap:{l:'LA diameter (AP, PLAX)',u:'mm',src:'L',...sx([30,40,46,52],[27,38,42,46])},
+  ao_sinus:{l:'Aortic root (sinus of Valsalva)',u:'mm',src:'L',...sx([null,40],[null,36],'Dilated')},
+  fs:{l:'Fractional shortening',u:'%',src:'F',calc:1,dp:1,ref:()=>'≥25',g:v=>v>45?['info','Hyperdynamic']:lowG(25,20,15)(v)},
+  ef_fs:{l:'EF estimate (≈ 2 × FS)',u:'%',src:'L',calc:1,dp:1,ref:efRef,g:efG},
+  ef_vis:{l:'LVEF — visual estimate',u:'%',src:'L',ref:efRef,g:efG},
+  epss:{l:'MSS / E-point septal sep.',u:'mm',src:'P',ref:()=>'≤7',g:v=>v<=7?['ok','Normal']:['m1','Increased']},
+  mapse:{l:'MAPSE (lateral)',u:'mm',src:'F',ref:()=>'≥11',g:v=>v>=11?['ok','Normal']:['m1','Reduced']},
+  tapse:{l:'TAPSE',u:'mm',src:'A',ref:()=>'>17',g:tapseG},
+  tapse_spap:{l:'TAPSE / sPAP',u:'mm/mmHg',src:'A',calc:1,dp:2,ref:()=>'≥0.55',g:v=>v>=0.55?['ok','Normal']:v>=0.4?['m1','Reduced']:['m2','Uncoupling']},
+  rvot_at:{l:'RVOT acceleration time',u:'ms',src:'A',ref:()=>'≥105',g:v=>v>=105?['ok','Normal']:['m1','Reduced']},
+  pa_d:{l:'Pulmonary artery diameter',u:'mm',src:'A',ref:()=>'≤25',g:v=>v<=25?['ok','Normal']:['m1','Dilated']},
+  ivc_max:{l:'IVC max diameter',u:'mm',src:'A',ref:()=>'≤21',g:v=>v<=21?['ok','Normal']:['m1','Dilated']},
+  ivc_min:{l:'IVC min (inspiration)',u:'mm',src:'A',ref:()=>''},
+  ivc_ci:{l:'IVC collapse',u:'%',src:'A',calc:1,dp:0,ref:()=>'≥50',g:v=>v>=50?['ok','Normal']:['m1','Reduced']},
+  rap:{l:'RAP estimate',u:'mmHg',src:'A',calc:1,dp:0,ref:()=>'3 (0–5)',g:v=>S.vent==='IPPV'?['na','Not valid on IPPV']:v===3?['ok','Normal']:v===8?['m1','Intermediate']:v===15?['m2','High']:['sev','Very high']},
+  rwt:{l:'RWT (2 × PWd / LVIDd)',u:'',src:'L',calc:1,dp:2,ref:()=>'≤0.42',g:v=>v<=0.42?['ok','Normal']:['m2','Increased']},
+  lvm:{l:'LV mass (linear)',u:'g',src:'L',calc:1,dp:0,...sx([88,224],[67,162])},
+  lvmi:{l:'LV mass index',u:'g/m²',src:'L',calc:1,dp:0,idx:'lvm',...sx([49,115,131,148],[43,95,108,121])},
+  lvedv:{l:'LVEDV (biplane)',u:'mL',src:'L',...sx([62,150],[46,106])},
+  lvedvi:{l:'LVEDV index',u:'mL/m²',src:'L',calc:1,dp:0,idx:'lvedv',...sx([34,74,89,100],[29,61,70,80])},
+  lvesv:{l:'LVESV (biplane)',u:'mL',src:'L',...sx([21,61],[14,42])},
+  lvesvi:{l:'LVESV index',u:'mL/m²',src:'L',calc:1,dp:0,idx:'lvesv',...sx([11,31,38,45],[8,24,32,40])},
+  ef_bp:{l:'LVEF (biplane Simpson)',u:'%',src:'L',calc:1,dp:0,ref:efRef,g:efG},
+  gls:{l:'LV global longitudinal strain',u:'%',src:'L',ref:()=>'≤ −18',g:v=>{const a=Math.abs(v);return a>=18?['ok','Normal']:a>=16?['m1','Borderline']:['m2','Reduced']}},
+  e_vel:{l:'Mitral E velocity',u:'m/s',st:'0.01',muted:1,ref:()=>'<1.2 FATE card',g:null},
+  a_vel:{l:'Mitral A velocity',u:'m/s',st:'0.01',ref:()=>''},
+  ea:{l:'E/A ratio',u:'',calc:1,dp:2,src:'A',ref:()=>'0.8–2',g:v=>v<=0.8?['info','Low']:v>=2?['m2','High']:['na','Mid-range']},
+  dt:{l:'E deceleration time',u:'ms',src:'F',ref:()=>'140–240 *',g:v=>v<140?['m1','Short']:v>240?['m1','Prolonged']:['ok','Normal']},
+  e_sep:{l:'e′ septal',u:'cm/s',src:'A',ref:()=>'>6',g:v=>v>6?['ok','Normal']:['m1','Reduced']},
+  e_lat:{l:'e′ lateral',u:'cm/s',src:'A',ref:()=>'>7',g:v=>v>7?['ok','Normal']:['m1','Reduced']},
+  lars:{l:'LA reservoir strain',u:'%',src:'A',ref:()=>'>18',g:v=>Math.abs(v)>18?['ok','Normal']:['m2','Reduced']},
+  ivrt:{l:'IVRT',u:'ms',src:'A',ref:()=>'>70',g:v=>v>70?['ok','Normal']:['m1','Short']},
+  ee:{l:'E/e′',u:'',calc:1,dp:1,src:'A',ref:c=>{const b=c.D&&c.D.eeBasis;return `<${eeThr(c.D)}`+(b&&b!=='average'?` (${b.split(' ')[0]})`:' (avg)')},g:(v,c)=>v>=eeThr(c.D)?['m2','Elevated']:['ok','Normal']},
+  pv_sd:{l:'Pulmonary vein S/D',u:'',src:'A',st:'0.01',ref:()=>'>0.67',g:v=>v<=0.67?['m1','Reduced']:['ok','Normal']},
+  la_a4c:{l:'LA diameter (A4C, mediolateral)',u:'mm',ref:()=>'',g:null},
+  lav:{l:'LA volume (biplane, ES)',u:'mL',ref:()=>''},
+  lavi:{l:'LA volume index',u:'mL/m²',src:'L',calc:1,dp:0,idx:'lav',...fixed([null,34,41,48])},
+  rav:{l:'RA volume (A4C, ES)',u:'mL',ref:()=>''},
+  ravi:{l:'RA volume index',u:'mL/m²',src:'L',calc:1,dp:0,idx:'rav',...sx([null,39],[null,33],'Dilated')},
+  rv_basal:{l:'RV basal diameter (A4C)',u:'mm',src:'A',ref:()=>'<41',g:rvbG},
+  rv_mid:{l:'RV mid diameter',u:'mm',src:'L',...fixed([null,35],'Dilated')},
+  rv_long:{l:'RV longitudinal length',u:'mm',src:'L',...fixed([null,83],'Dilated')},
+  rvot_prox:{l:'RVOT proximal (PSAX)',u:'mm',src:'L',...fixed([null,35],'Dilated')},
+  rv_wall:{l:'RV free-wall thickness',u:'mm',src:'L',...fixed([null,5],'Increased')},
+  rv_s:{l:'RV S′ (tissue Doppler)',u:'cm/s',src:'L',ref:()=>'≥9.5',g:lowG(9.5)},
+  rv_fac:{l:'RV fractional area change',u:'%',src:'L',ref:()=>'≥35',g:lowG(35)},
+  rv_fws:{l:'RV free-wall strain',u:'%',src:'L',ref:()=>'≤ −20',g:v=>Math.abs(v)>=20?['ok','Normal']:['m2','Reduced']},
+  trv:{l:'TR peak velocity',u:'m/s',src:'A',st:'0.1',ref:()=>'≤2.8',g:v=>v<=2.8?['ok','Normal']:v<=3.4?['m1','Elevated']:['m2','Elevated']},
+  rvsp:{l:'RVSP (4V² + RAP)',u:'mmHg',src:'A',calc:1,dp:0,ref:()=>'≤35',g:v=>v<=35?['ok','Normal']:['m2','Elevated']},
+  ao_ann:{l:'Aortic annulus',u:'mm',src:'L',...sx([null,32],[null,27],'Dilated')},
+  ao_stj:{l:'Sinotubular junction',u:'mm',src:'L',...sx([null,35],[null,32],'Dilated')},
+  ao_asc:{l:'Proximal ascending aorta',u:'mm',src:'L',...sx([null,38],[null,35],'Dilated')},
+  lvot_d:{l:'LVOT diameter',u:'mm',ref:()=>''},
+  lvot_vti:{l:'LVOT VTI',u:'cm',ref:()=>'18–22',g:v=>v<15?['m2','Low']:v<18?['m1','Borderline']:['ok','Normal']},
+  sv:{l:'Stroke volume',u:'mL',calc:1,dp:0,ref:()=>'60–100',g:v=>v<60?['m1','Low']:v>100?['info','High']:['ok','Normal']},
+  svi:{l:'Stroke volume index',u:'mL/m²',calc:1,dp:0,src:'A',idx:'sv',ref:()=>'≥35',g:v=>v<35?['m2','Low flow']:['ok','Normal']},
+  co:{l:'Cardiac output',u:'L/min',calc:1,dp:1,ref:()=>'4–8',g:v=>v<4?['m2','Low']:v>8?['info','High']:['ok','Normal']},
+  ci:{l:'Cardiac index',u:'L/min/m²',calc:1,dp:1,idx:'co',ref:()=>'2.5–4.0',g:v=>v<2.5?['m2','Low']:v>4?['info','High']:['ok','Normal']},
+  av_vmax:{l:'AV peak velocity',u:'m/s',src:'A',st:'0.1',ref:()=>'≤2.5',g:v=>v<2.6?['ok','Normal / sclerosis']:v<3?['m1','Mild AS']:v<4?['m2','Moderate AS']:['sev','Severe AS']},
+  av_ppg:{l:'AV peak gradient (4V²)',u:'mmHg',calc:1,dp:0,ref:()=>''},
+  av_mpg:{l:'AV mean gradient',u:'mmHg',src:'A',ref:()=>'mild <20',g:v=>v<20?['ok','Mild / none']:v<40?['m2','Moderate AS']:['sev','Severe AS']},
+  av_vti:{l:'AV VTI',u:'cm',ref:()=>''},
+  ava:{l:'AVA (continuity)',u:'cm²',calc:1,dp:2,src:'A',ref:()=>'mild >1.5',g:v=>v>1.5?['ok','Mild / none']:v>=1?['m2','Moderate AS']:['sev','Severe AS']},
+  avai:{l:'AVA index',u:'cm²/m²',calc:1,dp:2,src:'A',idx:'ava',ref:()=>'mild >0.85',g:v=>v>0.85?['ok','Mild / none']:v>=0.6?['m2','Moderate AS']:['sev','Severe AS']},
+  dvi:{l:'Dimensionless index',u:'',calc:1,dp:2,src:'A',ref:()=>'mild >0.50',g:v=>v>0.5?['ok','Mild / none']:v>=0.25?['m2','Moderate AS']:['sev','Severe AS']},
+  mv_mpg:{l:'MV mean gradient',u:'mmHg',src:'A',ref:()=>'<5 if MS',g:v=>v<5?['ok','Mild / none']:v<=10?['m2','Moderate MS']:['sev','Severe MS']},
+  mv_pht:{l:'MV pressure half-time',u:'ms',ref:()=>''},
+  mva:{l:'MVA (220 / PHT)',u:'cm²',calc:1,dp:2,src:'A',ref:()=>'>1.5',g:v=>v>1.5?['ok','Mild / none']:v>=1?['m2','Moderate MS']:['sev','Severe MS']}
+};
+
+/* ---------- templates ---------- */
+let uidN=0; const uid=k=>`${k}_${++uidN}`;
+const fld=(k,label,type,cls='',unit='')=>`<div class="fld ${cls}"><label for="${uid(k)}">${label}</label><div class="fv"><input id="${k}_${uidN}" type="${type}" ${type==='number'?'inputmode="decimal" step="any"':''} data-k="${k}">${type==='date'?`<span class="pd" data-o="${k}_t"></span>`:''}${unit?`<span class="u">${unit}</span>`:''}</div></div>`;
+const sel=(k,label,opts,cls='')=>`<div class="fld ${cls}"><label for="${uid(k)}">${label}</label><div class="fv"><select id="${k}_${uidN}" data-k="${k}" data-opts="${opts}"></select></div></div>`;
+OPTS.sex=['Male','Female'];
+OPTS.rhythm=['Sinus rhythm','Atrial fibrillation','Paced','Other'];
+OPTS.setting=['Theatre — pre-op','Theatre — intra-op','PACU','ICU / HCU','Emergency centre','Ward'];
+OPTS.vent=['Spontaneous','IPPV','NIV / CPAP'];
+OPTS.iq=['Good','Adequate','Poor','Limited'];
+
+const TPL={
+  head:el=>`<header class="sh-head">
+    <div class="org"><div class="org-name" contenteditable="true" spellcheck="false" data-k="org">New Somerset Hospital</div>
+    <div class="org-sub" contenteditable="true" spellcheck="false" data-k="dept">Department of Anaesthesia · Western Cape Government: Health</div></div>
+    <div class="ttl"><div class="eyebrow">${el.dataset.eyebrow}</div><h1>${el.dataset.title}</h1></div>
+    <dl class="ids"><dt>Report</dt><dd data-o="rid_${el.dataset.rid}">—</dd><dt>Study</dt><dd><input type="datetime-local" id="${uid('study_dt')}" data-k="study_dt" aria-label="Study date and time"><span class="pd" data-o="study_dt_t"></span></dd></dl>
+  </header>`,
+  pt:()=>`<section class="pt">
+    ${fld('pt_name','Patient','text','span2')}${fld('pt_folder','Folder no.','text')}${fld('pt_dob','Date of birth','date')}
+    <div class="fld"><span class="lbl">Age</span><div class="fv"><output data-o="age"></output><span class="u">y</span></div></div>
+    <div class="fld"><label for="${uid('sex')}">Sex</label><div class="fv"><select id="sex_${uidN}" data-k="sex"><option value=""></option><option value="M">Male</option><option value="F">Female</option></select></div></div>
+    ${fld('ht','Height','number','','cm')}${fld('wt','Weight','number','','kg')}
+    <div class="fld"><span class="lbl">BSA <select class="mini" data-k="bsa_m" id="${uid('bsa_m')}" aria-label="BSA formula"><option value="DuBois">DuBois</option><option value="Mosteller">Mosteller</option></select></span><div class="fv"><output data-o="bsa"></output><span class="u">m²</span></div></div>
+    ${fld('hr','Heart rate','number','','/min')}${fld('bp','Blood pressure','text','','mmHg')}${sel('rhythm','Rhythm','rhythm')}
+    ${sel('setting','Setting','setting')}${sel('vent','Ventilation','vent')}${sel('iq','Image quality','iq')}
+    ${fld('machine','Machine / probe','text')}${fld('indication','Indication','text','span2')}
+  </section>`,
+  ptb:()=>`<section class="pt">
+    ${fld('pt_name','Patient','text','span2')}${fld('pt_folder','Folder no.','text')}${fld('pt_dob','Date of birth','date')}
+    <div class="fld"><span class="lbl">Age</span><div class="fv"><output data-o="age"></output><span class="u">y</span></div></div>
+    <div class="fld"><label for="${uid('sex')}">Sex</label><div class="fv"><select id="sex_${uidN}" data-k="sex"><option value=""></option><option value="M">Male</option><option value="F">Female</option></select></div></div>
+    ${sel('setting','Setting','setting')}${sel('vent','Ventilation','vent')}${sel('iq','Image quality','iq')}${fld('indication','Indication','text','span3')}
+  </section>`,
+  eye:()=>`<div class="eb" data-eb>
+    <div class="eb-h">Eyeball assessment <label class="ck normal"><input type="checkbox" data-k="eb_normal" id="${uid('eb_normal')}">All normal</label></div>
+    <div class="eb-body">
+      <div class="eb-row"><span class="l">Enlarged</span><span class="eb-opts">
+        <label class="ck"><input type="checkbox" data-k="eb_la" id="${uid('eb_la')}">LA</label>
+        <label class="ck"><input type="checkbox" data-k="eb_lv" id="${uid('eb_lv')}">LV</label>
+        <label class="ck"><input type="checkbox" data-k="eb_rv" id="${uid('eb_rv')}">RV / RVOT</label>
+        <label class="ck"><input type="checkbox" data-k="eb_ao" id="${uid('eb_ao')}">Aorta</label></span></div>
+      <div class="eb-row"><span class="l">Hypertrophy</span><span class="eb-opts">
+        <label class="ck"><input type="checkbox" data-k="eb_lvh" id="${uid('eb_lvh')}">LVH</label>
+        <select data-k="eb_lvh_t" id="${uid('eb_lvh_t')}" aria-label="LVH pattern"><option value="">pattern…</option><option>Concentric</option><option>Eccentric</option></select>
+        <label class="ck"><input type="checkbox" data-k="eb_ivs" id="${uid('eb_ivs')}">IVS hypertrophy (asymmetric)</label></span></div>
+    </div>
+    <div class="eb-sugg" hidden><span data-o="eb_sugg"></span><button type="button" data-eb-apply>Tick these</button></div>
+  </div>`,
+  ptmini:()=>`<div class="pt-mini"><span>Patient <b data-o="pt_name"></b></span><span>Folder <b data-o="pt_folder"></b></span><span>Sex <b data-o="sex_t"></b></span><span>Age <b data-o="age"></b></span><span>BSA <b data-o="bsa"></b> m²</span><span>HR <b data-o="hr"></b></span><span>Rhythm <b data-o="rhythm"></b></span></div>`,
+  rapsec:()=>`<div class="q"><label>RAP secondary signs <i class="qi">(RA enlarged, IAS bulging, tricuspid E/e′ &gt;6, HV S fraction &lt;55%)</i></label><select data-k="rap_sec" data-opts="rapsec" id="${uid('rap_sec')}"></select></div>
+    <div class="q"><label>IVC &gt;25 mm with dilated hepatic veins, SEC or flow reversal</label><select data-k="rap_20" data-opts="yn" id="${uid('rap_20')}"></select></div>`,
+  bsawarn:()=>`<div class="bsa-warn" data-bsa-warn hidden>BSA unavailable — indexed values not calculated. Enter height and weight.</div>`,
+  asgrade:()=>`<table class="asg"><thead><tr><th>AS grade</th><th>Sclerosis</th><th>Mild</th><th>Moderate</th><th>Severe</th></tr></thead><tbody>
+    <tr><td>Peak velocity (m/s)</td><td>≤2.5</td><td>2.6–2.9</td><td>3.0–3.9</td><td>≥4.0</td></tr>
+    <tr><td>Mean gradient (mmHg)</td><td>—</td><td>&lt;20</td><td>20–39</td><td>≥40</td></tr>
+    <tr><td>AVA (cm²)</td><td>—</td><td>&gt;1.5</td><td>1.0–1.5</td><td>&lt;1.0</td></tr>
+    <tr><td>AVA index (cm²/m²)</td><td>—</td><td>&gt;0.85</td><td>0.60–0.85</td><td>&lt;0.6</td></tr>
+    <tr><td>Velocity ratio (DI)</td><td>—</td><td>&gt;0.50</td><td>0.25–0.50</td><td>&lt;0.25</td></tr></tbody>
+    <caption>Baumgartner H et al. JASE 2017;30:372–92. Grades assume normal flow (SVi ≥35 mL/m²).</caption></table>`,
+  sig:()=>`<div class="sig">
+    ${fld('operator','Operator','text')}${fld('hpcsa','HPCSA no.','text')}
+    <div class="fld"><span class="lbl">Signature</span><div class="line"></div></div>${fld('supervisor','Supervisor / reviewer','text')}
+  </div>`
+};
+
+function fillSelects(root){
+  $$('select[data-opts]',root).forEach(s=>{if(s.options.length)return;
+    const o=OPTS[s.dataset.opts]||[];
+    s.innerHTML='<option value=""></option>'+o.map(x=>`<option>${x.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</option>`).join('');
+    if(!s.id) s.id=uid(s.dataset.k);
+  });
+}
+/* Print shows plain-text copies of every field: browsers (Safari especially) paint form controls inconsistently in print */
+const MIRROR_SEL='select[data-k], input[data-k]:not([type=checkbox]):not([type=date]):not([type=datetime-local])';
+function ensureMirrors(root){
+  $$(MIRROR_SEL,root).forEach(el=>{
+    const n=el.nextElementSibling; if(n&&n.classList.contains('pv'))return;
+    const sp=document.createElement('span');sp.className='pv'+(el.type==='number'?' num':'');sp.setAttribute('aria-hidden','true');el.after(sp);
+  });
+}
+function syncMirrors(){
+  $$(MIRROR_SEL).forEach(el=>{const sp=el.nextElementSibling;if(!sp||!sp.classList.contains('pv'))return;
+    let t=el.tagName==='SELECT'?(el.value?el.options[el.selectedIndex].text:''):el.value;
+    if(sp.textContent!==t)sp.textContent=t;sp.classList.toggle('empty',!t);});
+}
+function build(){
+  $$('[data-tpl]').forEach(el=>{el.outerHTML=TPL[el.dataset.tpl](el)});
+  fillSelects(document);
+  $$('[data-rows]').forEach(t=>{
+    const head='<div class="r rh"><span>Measurement</span><span>Value</span><span>Unit</span><span>Reference</span><span>Finding</span></div>';
+    t.innerHTML=head+t.dataset.rows.split(' ').map(tok0=>{let tok=tok0;
+      const dup=tok[0]==='~'; if(dup)tok=tok.slice(1);
+      const [k,lab]=tok.split('='); const s=Object.assign({},SPEC[k]); if(lab)s.l=lab.replace(/_/g,' '); const id=uid(k);
+      const v=s.calc?`<output data-o="${k}" aria-label="${s.l}"></output>`:`<input id="${id}" type="number" step="${s.st||'any'}" inputmode="decimal" data-k="${k}" aria-label="${s.l}">`;
+      return `<div class="r" data-row="${k}"${dup?' data-dup="flow"':''}><span class="lb">${s.l}${s.calc?'<i>calc</i>':''}</span>${v}<span class="un">${s.u||''}</span><span class="rf"></span><span class="fl"></span></div>`;
+    }).join('');
+  });
+  $$('input[data-k]:not([id]),textarea[data-k]:not([id])').forEach(i=>i.id=uid(i.dataset.k));
+  $$('textarea.ta').forEach(t=>{const d=document.createElement('div');d.className='ta-print';d.dataset.o=t.dataset.k+'_p';t.after(d)});
+  $$('#af-pool > .sec[data-sec]').forEach((x,i)=>x.dataset.ord=i);
+  ensureMirrors(document);
+}
+
+
+/* ---------- state ---------- */
+const getV=el=>el.isContentEditable?el.textContent.trim():el.type==='checkbox'?(el.checked?'1':''):el.value;
+const setV=(el,v)=>{if(el.isContentEditable)el.textContent=v;else if(el.type==='checkbox')el.checked=!!v;else el.value=v??''};
+const DEFAULTS={};
+function save(){try{localStorage.setItem(STORE,JSON.stringify(S))}catch(e){}}
+function load(){try{const j=localStorage.getItem(STORE);if(j)S=JSON.parse(j)||{}}catch(e){S={}}}
+function applyAll(){
+  $$('[data-k]').forEach(el=>{const k=el.dataset.k;
+    if(k in S) setV(el,S[k]); else if(el.isContentEditable) setV(el,DEFAULTS[k]); else setV(el,'');});
+}
+function nowLocal(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`}
+
+/* ---------- calculations ---------- */
+const N=k=>{const x=parseFloat(S[k]);return Number.isFinite(x)?x:NaN};
+const ok=x=>Number.isFinite(x);
+function derive(){
+  const D={},ht=N('ht'),wt=N('wt');
+  D.bsa=S.bsa_m==='Mosteller'?Math.sqrt(ht*wt/3600):0.007184*Math.pow(wt,0.425)*Math.pow(ht,0.725);
+  const d=N('lvidd'),s=N('lvids'),ivs=N('ivsd'),pw=N('pwd');
+  D.fs=(d-s)/d*100; D.ef_fs=Math.min(2*D.fs,85);
+  D.rwt=2*pw/d;
+  D.lvm=0.8*1.04*((Math.pow(ivs+d+pw,3)-Math.pow(d,3))/1000)+0.6;
+  D.lvmi=D.lvm/D.bsa;
+  D.lvedvi=N('lvedv')/D.bsa; D.lvesvi=N('lvesv')/D.bsa;
+  D.ef_bp=(N('lvedv')-N('lvesv'))/N('lvedv')*100;
+  D.ea=N('e_vel')/N('a_vel');
+  const es=N('e_sep'),el=N('e_lat');
+  const em=ok(es)&&ok(el)?(es+el)/2:ok(es)?es:el;
+  D.ee=N('e_vel')*100/em; D.eeBasis=ok(es)&&ok(el)?'average':ok(es)?'septal only':ok(el)?'lateral only':'';
+  D.lavi=N('lav')/D.bsa; D.ravi=N('rav')/D.bsa;
+  const imax=N('ivc_max'),imin=N('ivc_min');
+  D.ivc_ci=(imax-imin)/imax*100;
+  D.rap=NaN; D.rapNote='';
+  if(ok(imax)&&ok(D.ivc_ci)){ // ASE 2025 (Mukherjee et al., Table 4)
+    const big=imax>21,col=D.ivc_ci>=50;
+    if(!big&&col)D.rap=3; else if(big&&!col)D.rap=15; else D.rap=8;
+    if(D.rap===8&&S.rap_sec==='Absent'){D.rap=3;D.rapNote='intermediate IVC; no secondary signs → 3'}
+    else if(D.rap===8&&S.rap_sec==='Present'){D.rap=15;D.rapNote='intermediate IVC; secondary signs present → 15'}
+    if(imax>25&&!col&&S.rap_20==='Yes'){D.rap=20;D.rapNote='IVC >25 mm, <50% collapse, hepatic vein signs → 20'}
+  }
+  D.rvsp=4*Math.pow(N('trv'),2)+(S.vent==='IPPV'?NaN:D.rap);
+  const la=Math.PI*Math.pow(N('lvot_d')/20,2);
+  D.sv=la*N('lvot_vti'); D.svi=D.sv/D.bsa; D.co=D.sv*N('hr')/1000; D.ci=D.co/D.bsa;
+  D.av_ppg=4*Math.pow(N('av_vmax'),2);
+  D.ava=la*N('lvot_vti')/N('av_vti'); D.avai=D.ava/D.bsa; D.dvi=N('lvot_vti')/N('av_vti');
+  D.mva=220/N('mv_pht');
+  D.tapse_spap=N('tapse')/D.rvsp;
+  return D;
+}
+/* Best available EF: biplane > visual % > FS estimate > visual category */
+function efNow(D){
+  if(ok(D.ef_bp))return{v:D.ef_bp,src:'biplane EF'};
+  if(ok(N('ef_vis')))return{v:N('ef_vis'),src:'visual EF'};
+  if(ok(D.ef_fs))return{v:D.ef_fs,src:'EF from FS'};
+  const f=S.lv_fn||'';
+  if(/reduced/.test(f))return{v:NaN,red:true,src:'visual LV function: '+f.toLowerCase()};
+  if(f)return{v:NaN,red:false,src:'visual LV function: '+f.toLowerCase()};
+  return null;
+}
+
+function geometry(c,D){
+  if(!ok(D.rwt)||!ok(D.lvm))return'Needs IVSd, LVIDd and PWd';
+  const thick=D.rwt>0.42;let big,mtxt;
+  if(ok(D.lvmi)){const t=SX(c,115,95);if(t==null)return'Set sex to classify';big=D.lvmi>t;mtxt=`LVMI ${D.lvmi.toFixed(0)} g/m²`}
+  else{const t=SX(c,224,162);if(t==null)return'Set sex to classify';big=D.lvm>t;mtxt=`LV mass ${D.lvm.toFixed(0)} g, not indexed (no BSA)`}
+  const g=big?(thick?'Concentric hypertrophy':'Eccentric hypertrophy'):(thick?'Concentric remodelling':'Normal geometry');
+  let out=`${g} (RWT ${D.rwt.toFixed(2)}; ${mtxt})`;
+  if(S.eb_lvh_t&&big&&!g.toLowerCase().startsWith(S.eb_lvh_t.toLowerCase()))out+=` — differs from eyeball "${S.eb_lvh_t.toLowerCase()}"`;
+  return out;
+}
+
+const DC_LAB={dc_mr:'severe primary MR',dc_mac:'MAC ≥ moderate',dc_ms:'MS / MV prosthesis, repair or TEER',dc_ncph:'non-cardiac PH',dc_other:'constriction / transplant / LVAD',dc_hr:'HR >100 / E–A fusion'};
+/* ASE 2025 diastolic function (Nagueh et al. JASE 2025;38:537–69, Figs 2–3, Table 7) */
+function diastolic(D){
+  const E=N('e_vel'),es=N('e_sep'),el=N('e_lat'),trv=N('trv'),ivrt=N('ivrt'),lars=Math.abs(N('lars')),sd=N('pv_sd');
+  const ef=efNow(D),red=!!(ef&&((ok(ef.v)&&ef.v<50)||ef.red));
+  const eeOn=ok(D.ee),eeHi=eeOn&&D.ee>=eeThr(D);
+  const list=a=>a.length?a.join(', '):'none';
+  if(S.rhythm==='Atrial fibrillation'){
+    const pos=[],neg=[];const eS=ok(E)&&ok(es)?E*100/es:NaN;
+    const t=(c,lab)=>{if(c===null)return;(c?pos:neg).push(lab)};
+    t(ok(eS)?eS>=11:null,'septal E/e′ ≥11'); t(ok(trv)?trv>2.8:null,'TR >2.8 m/s'); t(ok(ivrt)?ivrt<=65:null,'IVRT ≤65 ms');
+    t(red&&ok(N('dt'))?N('dt')<160:null,'DT <160 ms (reduced EF)');
+    return['AF — algorithm not applicable',`AF indices (Table 7) suggesting elevated LAP: ${list(pos)}; normal: ${list(neg)}. The guideline gives no minimum count; interpret together.`];
+  }
+  if(S.dc_mac){
+    if(!ok(D.ea))return['MAC — needs E/A','Moderate/severe MAC: E/A <0.8 suggests normal LAP, >1.8 elevated; for 0.8–1.8 use IVRT (≥80 ms normal, <80 elevated).'];
+    if(D.ea<0.8)return['Normal LAP (MAC criteria)',`MAC ≥ moderate: E/A ${D.ea.toFixed(2)} <0.8.`];
+    if(D.ea>1.8)return['Elevated LAP (MAC criteria)',`MAC ≥ moderate: E/A ${D.ea.toFixed(2)} >1.8.`];
+    if(!ok(ivrt))return['Indeterminate (MAC)',`MAC ≥ moderate: E/A ${D.ea.toFixed(2)} (0.8–1.8); needs IVRT.`];
+    return[ivrt>=80?'Normal LAP (MAC criteria)':'Elevated LAP (MAC criteria)',`MAC ≥ moderate: E/A ${D.ea.toFixed(2)}, IVRT ${ivrt} ms (${ivrt>=80?'≥':'<'}80).`];
+  }
+  if(S.dc_mr){
+    const pos=[],neg=[];
+    if(ok(ivrt))(ivrt<60?pos:neg).push('IVRT <60 ms');
+    if(red&&eeOn)(D.ee>14?pos:neg).push('avg E/e′ >14 (reduced EF)');
+    if(!pos.length&&!neg.length)return['Not graded — severe primary MR','Use IVRT <60 ms, Ar–A ≥30 ms, or average E/e′ >14 with reduced EF (Table 7).'];
+    return[pos.length?'Elevated LAP likely (MR criteria)':'Elevated LAP not shown (MR criteria)',`Severe primary MR (Table 7): positive ${list(pos)}; negative ${list(neg)}.`];
+  }
+  const conf=Object.keys(DC_LAB).filter(k=>S[k]).map(k=>DC_LAB[k]);
+  if(conf.length)return['Not graded — confounder present',`Confounder: ${conf.join(', ')}. The 2025 algorithm does not apply.`];
+  let hint='';
+  if(/Severe/.test(S.mr_g||'')&&/Primary/.test(S.mr_mech||''))hint+=' Note: severe primary MR recorded; tick the MR confounder.';
+  if(/Annular calcification/.test(S.mv_m||''))hint+=' Note: mitral annular calcification recorded; if moderate or worse, tick MAC.';
+  // three main variables
+  const eRed=ok(es)&&ok(el)?(es+el)/2<=6.5:ok(es)?es<=6:ok(el)?el<=7:null;
+  const eeV=eeOn?eeHi:null;
+  const pasp=ok(D.rvsp)?D.rvsp:NaN;
+  const pV=ok(pasp)?pasp>=35:ok(trv)?trv>=2.8:null;
+  const pLab=ok(pasp)?`PASP ${pasp.toFixed(0)} mmHg`:ok(trv)?`TR ${trv.toFixed(1)} m/s`:'PASP/TR';
+  const main=[[eRed,'reduced e′'],[eeV,`E/e′ ≥${eeThr(D)}`],[pV,ok(pasp)?'PASP ≥35':'TR ≥2.8']];
+  const avail=main.filter(x=>x[0]!==null),abn=avail.filter(x=>x[0]),miss=main.filter(x=>x[0]===null).map(x=>x[1].replace(/ ≥.*/,''));
+  let basis=`${ef?(ok(ef.v)?`${ef.src} ${ef.v.toFixed(0)}%`:ef.src):'EF not entered'} (single algorithm for any EF). Main variables: ${abn.length} of ${avail.length} abnormal (${list(abn.map(x=>x[1]))})`+(miss.length?`; not assessed: ${miss.join(', ')}`:'')+'. ';
+  if(avail.length<2)return['Insufficient data',basis+'Needs at least two of e′, E/e′ and PASP/TR velocity.'+hint];
+  const byEA=pre=>!ok(D.ea)?[`Elevated LAP — grade 2–3 (needs E/A)`,basis+pre]:D.ea>=2?['Grade 3 — markedly elevated LAP',basis+pre+`E/A ${D.ea.toFixed(2)} ≥2.`]:['Grade 2 — elevated LAP',basis+pre+`E/A ${D.ea.toFixed(2)} <2.`];
+  if(avail.length===3&&abn.length===3)return byEA('All three abnormal → elevated LAP. ').map((x,i)=>i?x+hint:x);
+  if(avail.length===3&&abn.length===0){
+    const mk=[];if(eeHi)mk.push('E/e′');if(ok(lars)&&lars<=18)mk.push('LARS ≤18%');if(ok(D.ea)&&(D.ea<=0.8||D.ea>=2))mk.push('E/A ≤0.8 or ≥2');if(ok(D.lavi)&&D.lavi>34)mk.push('LAVI >34');
+    if(ok(D.lvmi)){const t=SX({sex:S.sex},115,95);if(t&&D.lvmi>t)mk.push('LV mass index increased')}
+    return mk.length>=2?['Grade 1 — normal LAP',basis+`e′ normal but ≥2 remodelling markers (${mk.join(', ')}).`+hint]:['Normal diastolic function',basis+'Normal LAP.'+hint];
+  }
+  if(avail.length===3&&abn.length===1&&eRed&&ok(D.ea)&&D.ea<=0.8)return['Grade 1 — normal LAP',basis+`Reduced e′ with E/A ${D.ea.toFixed(2)} ≤0.8.`+hint];
+  // indeterminate → supplementary parameters (any one abnormal → elevated)
+  const sp=[],sn=[];
+  if(ok(lars))(lars<=18?sp:sn).push('LARS ≤18%');
+  if(ok(sd))(sd<=0.67?sp:sn).push('PV S/D ≤0.67'+(red?'':' (less reliable with normal EF)'));
+  if(ok(D.lavi))(D.lavi>34?sp:sn).push('LAVI >34');
+  if(ok(ivrt))(ivrt<=70?sp:sn).push('IVRT ≤70 ms');
+  basis+=`Indeterminate → supplementary: abnormal ${list(sp)}; normal ${list(sn)}. `;
+  if(sp.length)return byEA('Supplementary abnormal → elevated LAP. ').map((x,i)=>i?x+hint:x);
+  if(sn.length)return[eRed?'Grade 1 — normal LAP':'Normal LAP',basis+'Supplementary normal → LAP likely normal.'+hint];
+  return['Indeterminate',basis+'Add LARS, PV S/D, LAVI or IVRT.'+hint];
+}
+
+/* ESC/ERS 2022 echocardiographic probability of PH (Humbert et al., Table 7 / Fig. 4) */
+function phProb(D){
+  const trv=N('trv'),A=[],B=[],C=[];
+  if(/RV:LV ≥ 1/.test(S.rv_size||''))A.push('RV:LV ≥1');
+  if(/flattening|Paradoxical/.test(S.rv_sept||''))A.push('septal flattening');
+  if(ok(D.tapse_spap)&&D.tapse_spap<0.55)A.push(`TAPSE/sPAP ${D.tapse_spap.toFixed(2)}`);
+  if(ok(N('rvot_at'))&&N('rvot_at')<105)B.push('RVOT AT <105 ms');
+  if(S.pa_notch==='Yes')B.push('mid-systolic notching');
+  if(ok(N('pa_d'))&&N('pa_d')>25)B.push('PA >25 mm');
+  if(S.vent!=='IPPV'&&ok(N('ivc_max'))&&N('ivc_max')>21&&ok(D.ivc_ci)&&D.ivc_ci<50)C.push('IVC >21 mm with <50% collapse');
+  const cats=[['A ventricles',A],['B pulmonary artery',B],['C IVC/RA',C]].filter(x=>x[1].length);
+  if(!ok(trv)&&!cats.length)return['—','Enter TR velocity and supporting signs'];
+  let p;
+  if(ok(trv)&&trv>3.4)p='High';
+  else if(ok(trv)&&trv>2.8)p=cats.length>=2?'High':'Intermediate';
+  else p=cats.length>=2?'Intermediate':'Low';
+  const sg=cats.length?cats.map(x=>`${x[0]}: ${x[1].join(', ')}`).join('; '):'none';
+  return[p,`TRV ${ok(trv)?trv.toFixed(1)+' m/s':'not measured'}; signs in ${cats.length} of 3 categories (${sg}). High needs TRV >3.4, or 2.9–3.4 with signs in ≥2 categories.`];
+}
+
+function asSummary(D){
+  const v=N('av_vmax'),g=N('av_mpg'),a=D.ava;
+  if(!ok(v)&&!ok(g)&&!ok(a))return['—',''];
+  const gr=[];
+  if(ok(v))gr.push(v<2.6?0:v<3?1:v<4?2:3);
+  if(ok(g))gr.push(g<20?(ok(v)&&v<2.6?0:1):g<40?2:3);
+  if(ok(a))gr.push(a>1.5?(ok(v)&&v<2.6?0:1):a>=1?2:3);
+  const names=['No significant AS','Mild AS','Moderate AS','Severe AS'];
+  const mx=Math.max(...gr),mn=Math.min(...gr);
+  if(mx===mn||(mx<=1))return[names[mx],names[mx]];
+  let t=`Discordant indices (${names[mn].replace(' AS','')} to ${names[mx].replace(' AS','').toLowerCase()})`;
+  if(ok(D.svi)&&D.svi<35)t+=' with low flow (SVi <35): consider low-flow, low-gradient AS';
+  else t+=': check LVOT diameter and alignment';
+  return[t,'Discordant'];
+}
+function asFlow(D){
+  const any=ok(N('av_vmax'))||ok(N('av_mpg'))||ok(D.ava);
+  if(!any)return'—';
+  const ef=efNow(D),red=!!(ef&&((ok(ef.v)&&ef.v<50)||ef.red));
+  if(!ok(D.svi)){
+    if(ok(D.sv)&&!ok(D.bsa))return`SV ${D.sv.toFixed(0)} mL; SVi needs height and weight.`+(red?' EF <50%: low flow must be excluded before grading.':'');
+    return red?'EF <50%: enter LVOT diameter and VTI to check SVi. Gradients underestimate AS severity when SVi <35 mL/m².':'SVi not available (enter LVOT diameter, LVOT VTI, height and weight).';
+  }
+  const v=D.svi.toFixed(0);
+  if(D.svi>=35)return`Normal flow (SVi ${v} mL/m²).`;
+  return red?`Low flow (SVi ${v} mL/m²) with EF <50%: gradients may underestimate severity. Consider classical low-flow, low-gradient AS (dobutamine stress echo).`
+            :`Low flow (SVi ${v} mL/m²) with preserved EF: consider paradoxical low-flow, low-gradient AS (CT calcium score).`;
+}
+
+/* ---------- render ---------- */
+const fx=(v,dp=1)=>ok(v)?(+v).toFixed(dp):'';
+function setO(k,t){$$(`[data-o="${k}"]`).forEach(o=>o.textContent=t)}
+function chip(g){return g?`<span class="chip c-${g[0]}">${g[1]}</span>`:''}
+function update(){
+  const D=derive(),c={sex:S.sex||'',D};
+  setO('bsa',fx(D.bsa,2));
+  // age
+  let age='';
+  if(S.pt_dob){const b=new Date(S.pt_dob),r=S.study_dt?new Date(S.study_dt):new Date();
+    if(!isNaN(b)){let a=r.getFullYear()-b.getFullYear();const m=r.getMonth()-b.getMonth();if(m<0||(m===0&&r.getDate()<b.getDate()))a--;age=a>=0?String(a):''}}
+  setO('age',age); AGE=age===''?NaN:+age;
+  ['pt_name','pt_folder','hr','rhythm'].forEach(k=>setO(k,S[k]||'—'));
+  setO('sex_t',S.sex==='M'?'Male':S.sex==='F'?'Female':'—');
+  const dt=(S.study_dt||'').replace(/[-:T]/g,'');
+  setO('rid_FATE',dt?`FATE-${dt.slice(0,8)}-${dt.slice(8,12)}`:'—');
+  setO('rid_AF',dt?`FATE-A-${dt.slice(0,8)}-${dt.slice(8,12)}`:'—');
+  setO('rid_TTE',dt?`TTE-${dt.slice(0,8)}-${dt.slice(8,12)}`:'—');
+
+  $$('[data-row]').forEach(row=>{
+    const k=row.dataset.row,s=SPEC[k]; if(!s)return;
+    const v=s.calc?D[k]:N(k);
+    const base=s.idx?(ok(D[s.idx])?D[s.idx]:N(s.idx)):NaN, needBSA=!!s.idx&&!ok(D.bsa)&&ok(base);
+    if(s.calc){const o=row.querySelector('output');o.textContent=needBSA?'—':fx(v,s.dp??1)}
+    const ref=s.ref?s.ref(c):'';
+    const rf=row.querySelector('.rf');rf.classList.toggle('muted',!!s.muted);
+    rf.innerHTML=ref?`${ref}${s.src?`<sup>${s.src}</sup>`:''}`:'';
+    row.querySelector('.fl').innerHTML=needBSA?chip(['na','Needs BSA']):ok(v)&&s.g?chip(s.g(v,c)):'';
+  });
+
+  setO('geom',geometry(c,D));
+  ebRender(D);
+  const dd=diastolic(D); setO('dia',dd[0]); setO('dia_basis',dd[1]);
+  const as=asSummary(D); setO('as_sum',as[0]); setO('as_short',as[1]||'—'); setO('as_flow',asFlow(D));
+  const ph=phProb(D); setO('php',ph[0]); setO('php_basis',ph[1]);
+  $$('[data-bsa-warn]').forEach(w=>w.hidden=ok(D.bsa));
+  setO('ms_short',ok(D.mva)?`MVA ${D.mva.toFixed(2)} cm²`:'—');
+  const VCG={ar_vc:v=>v<3?['ok','Mild']:v<=6?['m1','Intermediate']:['sev','Severe'],
+    mr_vc:v=>v<3?['ok','Mild']:v<7?['m1','Intermediate']:['sev','Severe'],
+    tr_vc:v=>v<3?['ok','Mild']:v<7?['m1','Moderate']:v<14?['m2','Severe']:v<21?['sev','Massive']:['sev','Torrential']};
+  Object.keys(VCG).forEach(k=>{const v=N(k);$$(`[data-o="${k}_f"]`).forEach(o=>o.innerHTML=ok(v)?chip(VCG[k](v)):'')});
+  $$('table.asg').forEach(t=>t.hidden=!S.as_tbl);
+  setO('study_dt_t',fmtDate(S.study_dt,true)); setO('pt_dob_t',fmtDate(S.pt_dob,false));
+  syncMirrors();
+  setO('concl_p',S.concl||'');setO('adv_notes_p',S.adv_notes||'');
+  setO('ivc_note',S.vent==='IPPV'
+    ?'Patient on positive-pressure ventilation: IVC size and collapse do not estimate RAP. RVSP is not calculated.'
+    :'RAP from IVC (ASE 2025): ≤21 mm with ≥50% collapse = 3; >21 mm with <50% = 15; otherwise 8, moved to 3 or 15 by secondary signs; 20 if IVC >25 mm with hepatic vein signs.'+(D.rapNote?' Applied: '+D.rapNote+'.':''));
+}
+
+function fmtDate(v,time){if(!v)return'';const d=new Date(v);if(isNaN(d))return v;const p=n=>String(n).padStart(2,'0');
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`+(time?` ${p(d.getHours())}:${p(d.getMinutes())}`:'')}
+function fitText(){ // shrink printed free text so long conclusions are not clipped
+  $$('.ta-print').forEach(d=>{let f=7.8;d.style.fontSize=f+'pt';
+    const prev=d.style.display;d.style.display='block';
+    while(d.scrollHeight>d.clientHeight+1&&f>5.6){f-=0.2;d.style.fontSize=f.toFixed(1)+'pt'}
+    d.style.display=prev;});
+}
+
+/* ---------- Advanced FATE: selectable sections, auto-paginated ---------- */
+const AF_FOOT=`<footer class="sh-foot">
+  <div class="refs"><b>L</b> Lang RM et al. Cardiac chamber quantification. J Am Soc Echocardiogr 2015;28:1–39 / Eur Heart J Cardiovasc Imaging 2015;16:233–71. <b>F</b> FATE card 2020, USabcd; Jensen MB et al. Eur J Anaesthesiol 2004;21:700–7. <b>A</b> Nagueh SF et al. JASE 2025;38:537–69 (diastolic) · Mukherjee M et al. JASE 2025;38:141–86 (TAPSE, RV basal diameter, TAPSE/sPAP, IVC/RAP) · Baumgartner H et al. JASE 2017;30:372–92 (AS) and JASE 2009;22:1–23 (MS) · <b>E</b> Praz F et al. 2025 ESC/EACTS VHD guidelines. Eur Heart J 2025;46:4635–736 (regurgitation); Hahn RT, Zamorano JL. Eur Heart J Cardiovasc Imaging 2017;18:1342–3 (5-grade TR) · Humbert M et al. Eur Heart J 2022;43:3618–731 (TR velocity, PH probability). <b>P</b> McKaigney CJ et al. Am J Emerg Med 2014;32:493–7 (EPSS).</div>
+  <div class="disc">Focused point-of-care study answering a clinical question. It does not replace a comprehensive echocardiogram.</div>
+  <div class="stamp">Generated <span data-ts></span> · Page <span class="pgn"></span></div></footer>`;
+function afSecs(){return $$('#af-pool > .sec[data-sec], [data-view="af"] .sheet .sec[data-sec]')}
+function afOn(sec){if(sec.dataset.fixed)return true;const m=S.af_secs||{};return sec.dataset.sec in m?!!m[sec.dataset.sec]:!!sec.dataset.core}
+function buildPicker(){
+  const box=$('#afPicker');
+  box.innerHTML=afSecs().filter(x=>!x.dataset.fixed).map(x=>`<label><input type="checkbox" data-sec-t="${x.dataset.sec}"${afOn(x)?' checked':''}>${x.dataset.title}</label>`).join('');
+}
+let AF_BSA=null;
+function paginateAF(){
+  AF_BSA=ok(derive().bsa);
+  const view=$('.view[data-view="af"]'),pool=$('#af-pool');
+  const order=Array.from(pool.querySelectorAll(':scope > .sec[data-sec]')).concat($$('.sheet .sec[data-sec]',view));
+  const all=order.sort((a,b)=>+a.dataset.ord-+b.dataset.ord);
+  all.forEach(x=>pool.appendChild(x));
+  $$('.sheet',view).forEach(x=>x.remove());
+  const vis=all.filter(afOn),concl=vis.find(x=>x.dataset.sec==='concl'),rest=vis.filter(x=>x!==concl);
+  const flowOn=vis.some(x=>x.dataset.sec==='flow'); // LVOT/SV rows sit in the AS section only when Flow & output is not printed
+  all.forEach(x=>$$('[data-dup]',x).forEach(r=>r.hidden=flowOn));
+  const rows=[];let pend=null;
+  rest.forEach(x=>{if(x.dataset.w==='full'){if(pend){rows.push([pend]);pend=null}rows.push([x])}else if(pend){rows.push([pend,x]);pend=null}else pend=x});
+  if(pend)rows.push([pend]);
+  const hidden=!view.classList.contains('active')&&document.body.dataset.print!=='all';
+  if(!view.classList.contains('active'))view.classList.add('measure');
+  let n=0,body;
+  const newSheet=()=>{const a=document.createElement('article');a.className='sheet';
+    a.innerHTML=TPL.head({dataset:{eyebrow:n===0?'Point-of-care ultrasound · Advanced FATE':'Advanced FATE · continued',title:'Advanced FATE Report',rid:'AF'}})+(n===0?TPL.pt()+TPL.bsawarn():TPL.ptmini())+'<div class="body"></div>'+AF_FOOT;
+    const w=a.querySelector('[data-bsa-warn]');if(w)w.hidden=ok(derive().bsa);
+    view.appendChild(a);n++;body=a.querySelector('.body');};
+  const fits=()=>{ // last block must end ~2 mm above the body's bottom (slack for other browsers' font metrics)
+    if(body.scrollHeight>body.clientHeight+1)return false;
+    const last=body.lastElementChild;if(!last)return true;
+    const g=last.classList.contains('grow');if(g)last.style.flex='none';
+    const okFit=last.getBoundingClientRect().bottom<=body.getBoundingClientRect().bottom-8;
+    if(g)last.style.flex='';return okFit;};
+  newSheet();
+  const place=el=>{body.appendChild(el);if(!fits()&&body.children.length>1){body.removeChild(el);newSheet();body.appendChild(el)}};
+  rows.forEach(r=>{let el;if(r.length===1&&r[0].dataset.w==='full')el=r[0];else{el=document.createElement('div');el.className='cols';r.forEach(x=>el.appendChild(x))}place(el)});
+  if(concl){concl.querySelector('.ta').style.minHeight='24mm';place(concl);concl.querySelector('.ta').style.minHeight=''}
+  const sheets=$$('.sheet',view);sheets.forEach((sh,i)=>sh.querySelector('.pgn').textContent=`${i+1} of ${sheets.length}`);
+  view.classList.remove('measure');
+  fillSelects(view);ensureMirrors(view);
+  $$('input[data-k]:not([id])',view).forEach(i=>i.id=uid(i.dataset.k));
+  applyAll();update();stamp();
+}
+
+
+/* ---------- eyeball checklist ---------- */
+const EB_KEYS=['eb_la','eb_lv','eb_rv','eb_ao','eb_lvh','eb_lvh_t','eb_ivs'];
+function ebSuggest(D){
+  const c={sex:S.sex||''},hi=(k)=>{const v=N(k),sp=SPEC[k];if(!ok(v)||!sp.g)return false;const g=sp.g(v,c);return /↑|Increased|Dilated|Large/.test(g[1])};
+  const out=[];
+  if(hi('la_ap'))out.push(['eb_la','LA']);
+  if(hi('lvidd')||(ok(D.lvedvi)&&hi('lvedv')))out.push(['eb_lv','LV']);
+  if(hi('rvot_plax')||hi('rv_basal'))out.push(['eb_rv','RV/RVOT']);
+  if(hi('ao_sinus'))out.push(['eb_ao','Aorta']);
+  const ivs=N('ivsd'),pw=N('pwd');
+  const thick=hi('ivsd')||hi('pwd');
+  const gm=geometry(c,D);
+  if(/hypertrophy/.test(gm)){const t=/^Concentric/.test(gm)?'Concentric':'Eccentric';out.push(['eb_lvh','LVH ('+t.toLowerCase()+')',t])}
+  else if(thick){out.push(['eb_lvh','thick walls (mass not increased)'])}
+  if(ok(ivs)&&ok(pw)&&hi('ivsd')&&ivs/pw>=1.3)out.push(['eb_ivs','asymmetric septum (IVS/PW ≥1.3)']);
+  return out;
+}
+let EB_LAST=[];
+function ebRender(D){
+  const norm=!!S.eb_normal;
+  $$('[data-eb]').forEach(b=>{
+    const body=b.querySelector('.eb-body');body.classList.toggle('off',norm);
+    $$('input,select',body).forEach(x=>{x.disabled=norm});
+    const lvh=b.querySelector('[data-k="eb_lvh_t"]');lvh.disabled=norm||!S.eb_lvh;lvh.classList.toggle('empty',!S.eb_lvh_t);
+  });
+  EB_LAST=ebSuggest(D).filter(x=>!S[x[0]]);
+  $$('.eb-sugg').forEach(g=>g.hidden=!EB_LAST.length);
+  setO('eb_sugg',EB_LAST.length?`Measurements suggest: ${EB_LAST.map(x=>x[1]).join(', ')}.`:'');
+}
+/* ---------- add findings to conclusion ---------- */
+const QUIET=new Set(['Normal','None seen','None','Absent','Not seen','No','A-lines','Not assessed','Intact on colour Doppler','Trileaflet, normal','Normal leaflets','None / trace','No major abnormality','Not required','Normal (RV:LV < 0.6)','Present']);
+const SKIP_K=new Set(['cq','formal','prev','limits','myo','pa_notch','eb_lvh_t','mr_mech','rap_sec','rap_20']);
+function secTitle(sec){const h=sec.querySelector('h2');if(!h)return'';const c=h.cloneNode(true);$$('.n,.hn,button,.tgl',c).forEach(x=>x.remove());return c.textContent.replace(/\s+/g,' ').trim()}
+function collectFindings(){
+  const view=$('.view.active');if(!view)return[];
+  const secs=$$('.sheet .sec',view).filter(x=>!x.closest('.sec .sec'));
+  const out=[];
+  secs.forEach(sec=>{
+    const t=secTitle(sec);if(!t||/^views obtained|^conclusion|additional findings/i.test(t))return;
+    const it=[];
+    $$('.r[data-row]',sec).forEach(r=>{if(r.hidden)return;const ch=r.querySelector('.fl .chip');if(!ch||/c-ok|c-na/.test(ch.className))return;
+      const lb=r.querySelector('.lb').firstChild.textContent.trim(),vEl=r.querySelector('output,input'),val=vEl?(vEl.value||vEl.textContent||'').trim():'',u=r.querySelector('.un').textContent;
+      it.push(`${lb} ${val}${u?' '+u:''} (${ch.textContent})`)});
+    $$('.q',sec).forEach(q=>{
+      if(q.classList.contains('hd'))return;
+      const ctl=$$('select[data-k],input[data-k]',q);if(!ctl.length)return;
+      const lab=(q.querySelector('label,span.l')||{}).textContent||'';
+      if(ctl.length===1){const c=ctl[0];if(SKIP_K.has(c.dataset.k))return;const v=getV(c);
+        if(!v||(QUIET.has(v)&&!(c.dataset.k==='rwma'||c.dataset.k==='lv_thr')))return;
+        if(c.dataset.k==='rwma'&&v!=='Present')return;if(c.dataset.k==='lv_thr'&&v==='Not seen')return;
+        it.push(`${lab.trim()}: ${v}`);}
+      else{const vs=ctl.map(c=>getV(c));const isSlide=/sliding/i.test(lab);
+        const bad=vs.map((v,i)=>(isSlide?(v&&v!=='Present'&&v!=='Not assessed'):(v&&!QUIET.has(v)))?`${i?'left':'right'} ${v.toLowerCase()}`:'').filter(Boolean);
+        if(bad.length)it.push(`${lab.trim()}: ${bad.join(', ')}`);}
+    });
+    const eb=sec.querySelector('[data-eb]');
+    if(eb&&!S.eb_normal){const en=[['eb_la','LA'],['eb_lv','LV'],['eb_rv','RV/RVOT'],['eb_ao','aorta']].filter(x=>S[x[0]]).map(x=>x[1]);
+      if(en.length)it.push(`Eyeball: enlarged ${en.join(', ')}`);
+      if(S.eb_lvh)it.push(`Eyeball: LVH${S.eb_lvh_t?' ('+S.eb_lvh_t.toLowerCase()+')':''}`);
+      if(S.eb_ivs)it.push('Eyeball: asymmetric septal hypertrophy');}
+    const vt=sec.querySelector('.vt');
+    if(vt){[['Aortic','av_m','ar_g','ar_vc','as_short'],['Mitral','mv_m','mr_g','mr_vc','ms_short'],['Tricuspid','tv_m','tr_g','tr_vc',null],['Pulmonary','pv_m','pr_g',null,null]].forEach(([n,m,g,vc,st])=>{
+      const bits=[];if(S[m]&&!QUIET.has(S[m]))bits.push(S[m].toLowerCase());
+      if(st){const x=($(`[data-o="${st}"]`,vt)||{}).textContent;if(x&&x!=='—')bits.push(x==='Discordant'?'discordant AS indices':x)}
+      if(S[g]&&!QUIET.has(S[g])&&S[g]!=='Not assessed')bits.push(`${S[g].toLowerCase()} regurgitation`+(vc&&ok(N(vc))?` (VC ${N(vc)} mm)`:'')+(n==='Mitral'&&S.mr_mech?`, ${S.mr_mech.toLowerCase()}`:''));
+      if(bits.length)it.push(`${n} valve: ${bits.join(', ')}`)})}
+    $$('.interp',sec).forEach(dl=>{$$('dt',dl).forEach(dt=>{if(/basis|flow/i.test(dt.textContent))return;const dd=dt.nextElementSibling;const x=dd?dd.textContent.trim():'';
+      if(x&&x!=='—'&&!/^Normal|^No significant|^Low$|^Insufficient|^Needs|^Set sex|^Enter/.test(x))it.push(`${dt.textContent.trim()}: ${x}`)});
+      $$('dt',dl).forEach(dt=>{if(/flow/i.test(dt.textContent)){const x=dt.nextElementSibling.textContent.trim();if(/^Low flow/.test(x))it.push(x.replace(/\.$/,''))}})});
+    if(it.length)out.push(`${t}: ${it.join('; ')}.`);
+  });
+  return out;
+}
+function addFindings(){
+  const lines=collectFindings();
+  if(!lines.length){window.alert('No abnormal findings to add yet.');return}
+  const cur=(S.concl||'').trimEnd();
+  const txt=lines.map((l,i)=>`${i+1}. ${l}`).join('\n');
+  setKey('concl',(cur?cur+'\n\n':'')+'Findings:\n'+txt);save();update();
+  if($('.view.active').dataset.view==='af')paginateAF();
+}
+/* ---------- timestamp ---------- */
+function stamp(){
+  const d=new Date(),p=n=>String(n).padStart(2,'0'),off=-d.getTimezoneOffset();
+  const t=`${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())} (UTC${off>=0?'+':'−'}${p(Math.floor(Math.abs(off)/60))}:${p(Math.abs(off)%60)})`;
+  $$('[data-ts]').forEach(e=>e.textContent=t);
+}
+
+/* ---------- views & printing ---------- */
+function show(v){
+  $$('.view').forEach(s=>s.classList.toggle('active',s.dataset.view===v));
+  $$('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.view===v));
+  try{localStorage.setItem(STORE+'-view',v)}catch(e){}
+  if(v==='af')paginateAF();
+}
+function markLast(){
+  $$('.sheet').forEach(s=>s.classList.remove('last'));
+  const scope=$('#printScope').value; document.body.dataset.print=scope;
+  const sheets=scope==='all'?$$('.sheet'):$$('.view.active .sheet');
+  if(sheets.length)sheets[sheets.length-1].classList.add('last');
+}
+
+const EXAMPLE={
+  pt_name:'EXAMPLE, Patient',pt_folder:'NSH-0000000',pt_dob:'1980-03-14',sex:'M',ht:'176',wt:'82',hr:'92',bp:'104/62',rhythm:'Sinus rhythm',setting:'ICU / HCU',vent:'Spontaneous',iq:'Adequate',machine:'Phased array 1–5 MHz',indication:'Post-op day 2 hypotension and dyspnoea: LV or RV failure?',
+  v_sc4c:'Good',v_a4c:'Adequate',v_plax:'Good',v_psax:'Adequate',v_pl_r:'Good',v_pl_l:'Good',v_ivc:'Good',v_rvin:'Not obtained',v_psax_av:'Adequate',v_rva4c:'Adequate',v_a5c:'Adequate',v_a2c:'Poor',v_a3c:'Adequate',v_ssn:'Not obtained',
+  peff:'None',tamp:'Absent',lv_size:'Dilated',rv_size:'Dilated (RV:LV < 1)',rv_sept:'Normal',valve_gross:'None seen',ao_q:'Normal',
+  ivsd:'10',lvidd:'59',pwd:'10',lvids:'46',rvot_plax:'31',la_ap:'42',ao_sinus:'35',ef_vis:'40',epss:'14',mapse:'9',tapse:'15',
+  lv_fn:'Moderately reduced',rwma:'Present',rv_fn:'Mildly reduced',
+  pl_r_slide:'Present',pl_l_slide:'Present',pl_r_eff:'Small',pl_l_eff:'None',pl_r_pat:'B-lines (≥3 per space)',pl_l_pat:'B-lines (≥3 per space)',
+  cq:'Cause of hypotension; fluid?',ph:'LV systolic failure',fr:'Unlikely',ivc_max:'23',ivc_min:'17',other_us:'Gastric antrum empty',
+  concl:'1. Dilated LV with moderately reduced systolic function (visual EF ~40%) and anteroseptal/apical hypokinesia.\n2. Mildly dilated RV with reduced longitudinal function (TAPSE 15 mm).\n3. Plethoric IVC (estimated RAP 15 mmHg); bilateral B-lines and a small right pleural effusion.\nImpression: cardiogenic picture, likely ischaemic. Further fluid unlikely to help.',
+  formal:'Recommended',operator:'Dr Example',hpcsa:'MP 0000000',supervisor:'',
+  lvedv:'172',lvesv:'102',gls:'-13.5',rwma_terr:'LAD territory: anteroseptal and apical',lv_thr:'Not seen',lvoto:'No',
+  e_vel:'0.95',a_vel:'0.45',dt:'145',e_sep:'5',e_lat:'7',myo:'No',lav:'82',rav:'64',ias:'Intact on colour Doppler',
+  rv_basal:'43',rv_mid:'34',rv_long:'78',rvot_prox:'33',rv_wall:'4',rv_s:'9',rv_fac:'31',rv_fws:'-16',trv:'3.1',mcconnell:'No',
+  ao_ann:'24',ao_stj:'30',ao_asc:'33',lvot_d:'22',lvot_vti:'13',av_vmax:'1.3',av_mpg:'4',av_vti:'19',
+  av_m:'Trileaflet, normal',mv_m:'Normal leaflets',tv_m:'Normal',pv_m:'Normal',ar_g:'None / trace',mr_g:'Moderate',mr_vc:'5',tr_g:'Mild',tr_vc:'2.5',pr_g:'None / trace',
+  limits:'Apical views possibly foreshortened',prev:'No previous study available',
+  v_psax_mv:'Adequate',la_a4c:'44',pv_sd:'0.8',eb_lv:'1',eb_la:'1',eb_rv:'1',
+  af_secs:{path:true,dim:true,fn:true,dia:true,rv:true,ao:false,flow:true,as:false,ms:false,valves:true,peri:true,ctx:true,study:true}
+};
+
+/* ---------- init ---------- */
+build();
+$$('[contenteditable][data-k]').forEach(el=>DEFAULTS[el.dataset.k]=el.textContent.trim());
+load();
+if(!S.study_dt)S.study_dt=nowLocal();
+if(!S.bsa_m)S.bsa_m='DuBois';
+applyAll(); update(); stamp(); setInterval(stamp,1000);
+
+function setKey(k,v){S[k]=v;$$(`[data-k="${k}"]`).forEach(o=>setV(o,v))}
+function ebSide(k,v){
+  if(k==='eb_normal'&&v)EB_KEYS.forEach(x=>setKey(x,''));
+  if(k==='eb_lvh'&&!v)setKey('eb_lvh_t','');
+  if(EB_KEYS.includes(k)&&v)setKey('eb_normal','');
+}
+document.addEventListener('click',e=>{
+  if(e.target.closest('[data-concl-add]')){addFindings();return}
+  if(e.target.closest('[data-eb-apply]')){EB_LAST.forEach(x=>{setKey(x[0],'1');if(x[2])setKey('eb_lvh_t',x[2])});setKey('eb_normal','');save();update();return}
+  const b=e.target.closest('[data-setall]');
+  if(b){$$('select[data-k^="v_"]',b.closest('.sec')).forEach(x=>setKey(x.dataset.k,'Good'));save();update();return}
+  const pk=e.target.closest('[data-pk]');
+  if(pk){const m={};afSecs().forEach(x=>{if(!x.dataset.fixed)m[x.dataset.sec]=pk.dataset.pk==='all'?true:!!x.dataset.core});S.af_secs=m;save();buildPicker();paginateAF()}
+});
+document.addEventListener('change',e=>{
+  const t=e.target.closest('[data-sec-t]');if(!t)return;
+  const m=Object.assign({},S.af_secs||{});afSecs().forEach(x=>{if(!x.dataset.fixed&&!(x.dataset.sec in m))m[x.dataset.sec]=afOn(x)});
+  m[t.dataset.secT]=t.checked;S.af_secs=m;save();paginateAF();
+});
+function onEdit(e){
+  if(e.target.closest('[data-sec-t]'))return;
+  const el=e.target.closest('[data-k]'); if(!el)return;
+  const k=el.dataset.k,v=getV(el); S[k]=v;
+  $$(`[data-k="${k}"]`).forEach(o=>{if(o!==el)setV(o,v)});
+  ebSide(k,v);
+  save(); update();
+  if(k==='as_tbl'&&$('.view.active').dataset.view==='af')paginateAF();
+  if((k==='ht'||k==='wt')&&e.type==='change'&&AF_BSA!==ok(derive().bsa)&&$('.view.active').dataset.view==='af')paginateAF();
+}
+document.addEventListener('input',onEdit);
+document.addEventListener('change',onEdit);
+$$('[contenteditable]').forEach(el=>el.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();el.blur()}}));
+
+$$('.tabs button').forEach(b=>b.addEventListener('click',()=>show(b.dataset.view)));
+try{const v=localStorage.getItem(STORE+'-view');if(v)show(v)}catch(e){}
+$('#printScope').addEventListener('change',markLast);
+$('#btnPrint').addEventListener('click',()=>{stamp();markLast();fitText();window.print()});
+window.addEventListener('beforeprint',()=>{stamp();markLast();fitText()});
+buildPicker();paginateAF();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>paginateAF());
+$('#btnExample').addEventListener('click',()=>{S=Object.assign({study_dt:S.study_dt||nowLocal(),bsa_m:'DuBois'},JSON.parse(JSON.stringify(EXAMPLE)));applyAll();save();buildPicker();paginateAF()});
+$('#btnClear').addEventListener('click',()=>{
+  if(!window.confirm('Clear all fields on every view?'))return;
+  S={study_dt:nowLocal(),bsa_m:'DuBois'};applyAll();save();buildPicker();paginateAF();
+});
+})();
+</script>
+</body>
+</html>
