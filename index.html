@@ -30,6 +30,8 @@ button{font:inherit;cursor:pointer}
 .brand b{color:#f2a7b1;font-weight:600}
 .tabs{display:flex;gap:2px;background:rgba(255,255,255,.1);border-radius:7px;padding:3px}
 .tabs button{border:0;background:transparent;color:#cfd8e0;padding:6px 12px;border-radius:5px;font-family:var(--f-head);font-weight:500;font-size:13.5px}
+.tabs a.tablink{display:inline-block;color:#cfd8e0;padding:6px 12px;border-radius:5px;font-family:var(--f-head);font-weight:500;font-size:13.5px;text-decoration:none;border-left:1px solid rgba(255,255,255,.18);margin-left:2px}
+.tabs a.tablink:hover{background:rgba(255,255,255,.08);color:#fff}
 .tabs button[aria-selected="true"]{background:#fff;color:var(--ink)}
 .tb-group{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .tb-group label{color:#b7c2cc}
@@ -279,8 +281,8 @@ table.asg caption{caption-side:bottom;text-align:left;font-size:5.8pt;color:var(
   <div class="tabs" role="tablist">
     <button role="tab" data-view="basic" aria-selected="true">Basic FATE</button>
     <button role="tab" data-view="af" aria-selected="false">Advanced FATE</button>
-    <button role="tab" data-view="adv" aria-selected="false">Echocardiogram Report</button>
     <button role="tab" data-view="card" aria-selected="false">FATE Card</button>
+    <a class="tablink" href="tee.html" title="Open the intra-operative TEE report">TEE</a>
   </div>
   <div class="tb-group">
     <label for="printScope">Print</label>
@@ -509,175 +511,6 @@ table.asg caption{caption-side:bottom;text-align:left;font-size:5.8pt;color:var(
       <div data-tpl="sig"></div>
     </section>
   </div>
-</section>
-
-<!-- ===================== ECHOCARDIOGRAM REPORT ===================== -->
-<section class="view" data-view="adv">
-  <article class="sheet">
-    <div data-tpl="head" data-eyebrow="Transthoracic echocardiography · ASE/EACVI quantification" data-title="Echocardiogram Report" data-rid="TTE"></div>
-    <div data-tpl="pt"></div>
-    <div data-tpl="bsawarn"></div>
-    <div class="body">
-      <section class="sec">
-        <h2>Views obtained<span class="hn">Image quality per view</span><button type="button" class="setall" data-setall>Set all to Good</button></h2>
-        <div class="vg">
-          <div class="vrow"><span class="v">PLAX</span><select data-k="v_plax" data-opts="vq"></select></div>
-          <div class="vrow"><span class="v">RV inflow</span><select data-k="v_rvin" data-opts="vq"></select></div>
-          <div class="vrow"><span class="v">PSAX — AV level</span><select data-k="v_psax_av" data-opts="vq"></select></div>
-          <div class="vrow"><span class="v">PSAX — MV/PM/apex</span><select data-k="v_psax" data-opts="vq"></select></div>
-          <div class="vrow"><span class="v">Apical 4-chamber</span><select data-k="v_a4c" data-opts="vq"></select></div>
-          <div class="vrow"><span class="v">RV-focused A4C</span><select data-k="v_rva4c" data-opts="vq"></select></div>
-          <div class="vrow"><span class="v">Apical 5-chamber</span><select data-k="v_a5c" data-opts="vq"></select></div>
-          <div class="vrow"><span class="v">Apical 2-chamber</span><select data-k="v_a2c" data-opts="vq"></select></div>
-          <div class="vrow"><span class="v">Apical 3-ch (ALAX)</span><select data-k="v_a3c" data-opts="vq"></select></div>
-          <div class="vrow"><span class="v">Subcostal 4-chamber</span><select data-k="v_sc4c" data-opts="vq"></select></div>
-          <div class="vrow"><span class="v">Subcostal IVC</span><select data-k="v_ivc" data-opts="vq"></select></div>
-          <div class="vrow"><span class="v">Suprasternal</span><select data-k="v_ssn" data-opts="vq"></select></div>
-        </div>
-      </section>
-
-      <div class="cols">
-        <section class="sec">
-          <h2>Left ventricle<span class="hn">Size, mass, systolic function</span></h2>
-          <div class="tbl" data-rows="lvidd lvids ivsd pwd rwt lvm lvmi lvedv lvedvi lvesv lvesvi ef_bp ef_vis gls"></div>
-          <dl class="interp"><dt>Geometry</dt><dd data-o="geom">—</dd></dl>
-          <div class="q"><label>LV systolic function (visual)</label><select data-k="lv_fn" data-opts="fn5"></select></div>
-          <div class="q"><label>Regional wall motion abnormality</label><select data-k="rwma" data-opts="rwma"></select></div>
-          <div class="q"><label>Segments / territory</label><input type="text" data-k="rwma_terr"></div>
-          <div class="q"><label>LV thrombus</label><select data-k="lv_thr" data-opts="thr"></select></div>
-          <div class="q"><label>LVOT obstruction / SAM</label><select data-k="lvoto" data-opts="yn"></select></div>
-        </section>
-        <div class="stack">
-          <section class="sec">
-            <h2>Diastolic function<span class="hn">ASE 2025 algorithm</span></h2>
-            <div class="tbl" data-rows="e_vel a_vel ea dt e_sep e_lat ee lars pv_sd ivrt"></div>
-                  <div class="dc"><span class="l">Confounders <i>(algorithm not valid; tick to apply)</i></span><span class="eb-opts">
-        <label class="ck"><input type="checkbox" data-k="dc_mr">Severe primary MR</label>
-        <label class="ck"><input type="checkbox" data-k="dc_mac">MAC ≥ moderate</label>
-        <label class="ck"><input type="checkbox" data-k="dc_ms">MS / MV prosthesis, repair or TEER</label>
-        <label class="ck"><input type="checkbox" data-k="dc_ncph">Non-cardiac PH</label>
-        <label class="ck"><input type="checkbox" data-k="dc_other">Constriction / transplant / LVAD</label>
-        <label class="ck"><input type="checkbox" data-k="dc_hr">HR &gt;100 / E–A fusion</label></span></div>
-            <dl class="interp"><dt>Grade</dt><dd data-o="dia">—</dd><dt>Basis</dt><dd data-o="dia_basis">—</dd></dl>
-            <div class="note">* DT range from the FATE card. DT lengthens with age, so &gt;240 ms can be normal in older adults; a short DT (&lt;160 ms) with reduced EF indicates restrictive filling. Diastolic grading: Nagueh SF et al. JASE 2025;38:537–69.</div>
-          </section>
-          <section class="sec">
-            <h2>Atria &amp; septum</h2>
-            <div class="tbl" data-rows="la_ap lav lavi rav ravi"></div>
-            <div class="q"><label>Interatrial septum</label><select data-k="ias" data-opts="ias"></select></div>
-          </section>
-        </div>
-      </div>
-      <section class="sec grow">
-        <h2>Additional findings<span class="hn">Wall-motion detail, masses, devices, extracardiac</span></h2>
-        <textarea class="ta" data-k="adv_notes" placeholder="Free text"></textarea>
-      </section>
-    </div>
-    <footer class="sh-foot">
-      <div class="refs"><b>L</b> Lang RM et al. Cardiac chamber quantification. J Am Soc Echocardiogr 2015;28:1–39 / Eur Heart J Cardiovasc Imaging 2015;16:233–71 (sex-specific; volumes and mass indexed to BSA). <b>A</b> Nagueh SF et al. LV diastolic function. J Am Soc Echocardiogr 2025;38:537–69. <b>F</b> FATE card 2020, USabcd. LV mass: linear method, 0.8 × 1.04 × [(IVSd + LVIDd + PWd)³ − LVIDd³] + 0.6 g.</div>
-      <div class="disc">Values outside reference ranges are flagged for review. Interpret with the clinical picture and image quality.</div>
-      <div class="stamp">Generated <span data-ts></span> · Page 1 of 3</div>
-    </footer>
-  </article>
-
-  <article class="sheet">
-    <div data-tpl="head" data-eyebrow="Transthoracic echocardiography · continued" data-title="Echocardiogram Report" data-rid="TTE"></div>
-    <div data-tpl="ptmini"></div>
-    <div class="body">
-      <div class="cols">
-        <div class="stack">
-          <section class="sec">
-            <h2>Right ventricle &amp; pulmonary pressure</h2>
-            <div class="tbl" data-rows="rv_basal rv_mid rv_long rvot_plax rvot_prox rv_wall tapse rv_s rv_fac rv_fws trv rvsp tapse_spap rvot_at pa_d"></div>
-            <div class="q"><label>Mid-systolic RVOT Doppler notching</label><select data-k="pa_notch" data-opts="yn"></select></div>
-            <dl class="interp"><dt>PH probability</dt><dd data-o="php">—</dd><dt>Basis</dt><dd data-o="php_basis">—</dd></dl>
-            <div class="q"><label>RV size</label><select data-k="rv_size" data-opts="rvsize"></select></div>
-            <div class="q"><label>RV systolic function</label><select data-k="rv_fn" data-opts="fn4"></select></div>
-            <div class="q"><label>Septum</label><select data-k="rv_sept" data-opts="sept"></select></div>
-            <div class="q"><label>McConnell sign</label><select data-k="mcconnell" data-opts="yn"></select></div>
-          </section>
-          <section class="sec">
-            <h2>IVC &amp; right atrial pressure</h2>
-            <div class="tbl" data-rows="ivc_max ivc_min ivc_ci rap"></div>
-            <div data-tpl="rapsec"></div>
-            <div class="note" data-o="ivc_note"></div>
-          </section>
-        </div>
-        <div class="stack">
-          <section class="sec">
-            <h2>Aorta</h2>
-            <div class="tbl" data-rows="ao_ann ao_sinus ao_stj ao_asc"></div>
-            <div class="q"><label>Aorta (visual)</label><select data-k="ao_q" data-opts="aoq"></select></div>
-          </section>
-          <section class="sec">
-            <h2>Flow &amp; output<span class="hn">LVOT method, HR from header</span></h2>
-            <div class="tbl" data-rows="lvot_d lvot_vti sv svi co ci"></div>
-          </section>
-          <section class="sec">
-            <h2>Aortic valve — stenosis<label class="setall tgl"><input type="checkbox" data-k="as_tbl">Grading table</label></h2>
-            <div class="tbl" data-rows="av_vmax av_ppg av_mpg av_vti ava avai dvi"></div>
-            <dl class="interp"><dt>AS</dt><dd data-o="as_sum">—</dd><dt>Flow</dt><dd data-o="as_flow">—</dd></dl>
-            <div data-tpl="asgrade"></div>
-          </section>
-          <section class="sec">
-            <h2>Mitral valve — stenosis</h2>
-            <div class="tbl" data-rows="mv_mpg mv_pht mva"></div>
-          </section>
-        </div>
-      </div>
-
-    </div>
-    <footer class="sh-foot">
-      <div class="refs"><b>L</b> Lang 2015 (as page 1). <b>A</b> Mukherjee M et al. Right heart. J Am Soc Echocardiogr 2025;38:141–86 (TAPSE, RV basal diameter, TAPSE/sPAP, IVC/RAP). Baumgartner H et al. Aortic stenosis. J Am Soc Echocardiogr 2017;30:372–92. Baumgartner H et al. Valve stenosis (MS). J Am Soc Echocardiogr 2009;22:1–23. Humbert M et al. 2022 ESC/ERS PH guidelines. Eur Heart J 2022;43:3618–731 (TR velocity, PH probability).</div>
-      <div class="disc">Stenosis grades assume normal flow; check SVi and LVOT measurement when indices disagree.</div>
-      <div class="stamp">Generated <span data-ts></span> · Page 2 of 3</div>
-    </footer>
-  </article>
-
-  <article class="sheet">
-    <div data-tpl="head" data-eyebrow="Transthoracic echocardiography · continued" data-title="Echocardiogram Report" data-rid="TTE"></div>
-    <div data-tpl="ptmini"></div>
-    <div class="body">
-      <section class="sec">
-        <h2>Valves — morphology &amp; regurgitation<span class="hn">VC = vena contracta · ESC/EACTS 2025</span></h2>
-        <div class="vt">
-          <span class="hd">Valve</span><span class="hd">Morphology</span><span class="hd">Stenosis</span><span class="hd">Regurgitation</span><span class="hd">VC mm</span><span class="hd">VC grade</span>
-          <span class="vn">Aortic</span><select data-k="av_m" data-opts="avm"></select><span class="sten" data-o="as_short">—</span><select data-k="ar_g" data-opts="rg"></select><input type="number" inputmode="decimal" step="any" data-k="ar_vc" aria-label="AR vena contracta"><span data-o="ar_vc_f"></span>
-          <span class="vn">Mitral</span><select data-k="mv_m" data-opts="mvm"></select><span class="sten" data-o="ms_short">—</span><select data-k="mr_g" data-opts="rg"></select><input type="number" inputmode="decimal" step="any" data-k="mr_vc" aria-label="MR vena contracta"><span data-o="mr_vc_f"></span>
-          <span class="vn">Tricuspid</span><select data-k="tv_m" data-opts="tvm"></select><span class="sten">—</span><select data-k="tr_g" data-opts="rgtr"></select><input type="number" inputmode="decimal" step="any" data-k="tr_vc" aria-label="TR vena contracta"><span data-o="tr_vc_f"></span>
-          <span class="vn">Pulmonary</span><select data-k="pv_m" data-opts="pvm"></select><span class="sten">—</span><select data-k="pr_g" data-opts="rg"></select><span class="sten">—</span><span></span>
-        </div>
-        <div class="q"><label>MR mechanism</label><select data-k="mr_mech" data-opts="mrmech"></select></div>
-        <div class="note">VC grading (ESC/EACTS 2025): AR mild &lt;3, intermediate 3–6, severe &gt;6 mm · MR mild &lt;3, intermediate 3–6.9, severe ≥7 mm · TR mild &lt;3, moderate 3–6.9, severe 7–13.9, massive 14–20.9, torrential ≥21 mm. An intermediate AR/MR VC cannot separate moderate from severe; confirm on formal echo. VC is unreliable with multiple or very eccentric jets, and single-plane VC underestimates the elliptical orifice of secondary MR.</div>
-      </section>
-
-      <div class="cols">
-        <section class="sec">
-          <h2>Pericardium &amp; pleura</h2>
-          <div class="q"><label>Pericardial effusion</label><select data-k="peff" data-opts="peff"></select></div>
-          <div class="q"><label>Tamponade features</label><select data-k="tamp" data-opts="tamp"></select></div>
-          <div class="q q3"><span class="l">Pleural effusion (R / L)</span><select data-k="pl_r_eff" data-opts="pleff"></select><select data-k="pl_l_eff" data-opts="pleff"></select></div>
-        </section>
-        <section class="sec">
-          <h2>Study details</h2>
-          <div class="q"><label>Limitations</label><input type="text" data-k="limits"></div>
-          <div class="q"><label>Comparison with previous</label><input type="text" data-k="prev"></div>
-          <div class="q"><label>Formal echocardiography</label><select data-k="formal" data-opts="formal"></select></div>
-        </section>
-      </div>
-
-      <section class="sec grow">
-        <h2>Conclusion<button type="button" class="setall" data-concl-add>Add findings to conclusion</button></h2>
-        <textarea class="ta" data-k="concl" placeholder="Numbered key findings, then the answer to the clinical question."></textarea>
-      </section>
-      <div data-tpl="sig"></div>
-    </div>
-    <footer class="sh-foot">
-      <div class="refs"><b>L</b> Lang 2015 (as page 1). <b>A</b> Mukherjee M et al. Right heart. J Am Soc Echocardiogr 2025;38:141–86 (TAPSE, RV basal diameter, TAPSE/sPAP, IVC/RAP). Baumgartner H et al. Aortic stenosis. J Am Soc Echocardiogr 2017;30:372–92. Baumgartner H et al. Valve stenosis (MS). J Am Soc Echocardiogr 2009;22:1–23. <b>E</b> Praz F et al. 2025 ESC/EACTS VHD guidelines. Eur Heart J 2025;46:4635–736 (regurgitation); Hahn RT, Zamorano JL. Eur Heart J Cardiovasc Imaging 2017;18:1342–3 (5-grade TR). Humbert M et al. 2022 ESC/ERS PH guidelines. Eur Heart J 2022;43:3618–731 (TR velocity, PH probability).</div>
-      <div class="disc">Stenosis grades assume normal flow; check SVi and LVOT measurement when indices disagree.</div>
-      <div class="stamp">Generated <span data-ts></span> · Page 3 of 3</div>
-    </footer>
-  </article>
 </section>
 
 <!-- ===================== FATE CARD ===================== -->
@@ -1326,11 +1159,12 @@ const AF_FOOT=`<footer class="sh-foot">
 function afSecs(){return $$('#af-pool > .sec[data-sec], [data-view="af"] .sheet .sec[data-sec]')}
 function afOn(sec){if(sec.dataset.fixed)return true;const m=S.af_secs||{};return sec.dataset.sec in m?!!m[sec.dataset.sec]:!!sec.dataset.core}
 function buildPicker(){
-  const box=$('#afPicker');
+  const box=$('#afPicker');if(!box)return;
   box.innerHTML=afSecs().filter(x=>!x.dataset.fixed).map(x=>`<label><input type="checkbox" data-sec-t="${x.dataset.sec}"${afOn(x)?' checked':''}>${x.dataset.title}</label>`).join('');
 }
 let AF_BSA=null;
 function paginateAF(){
+  if(!$('.view[data-view="af"]'))return;
   AF_BSA=ok(derive().bsa);
   const view=$('.view[data-view="af"]'),pool=$('#af-pool');
   const order=Array.from(pool.querySelectorAll(':scope > .sec[data-sec]')).concat($$('.sheet .sec[data-sec]',view));
@@ -1458,6 +1292,7 @@ function stamp(){
 
 /* ---------- views & printing ---------- */
 function show(v){
+  if(!$(`.view[data-view="${v}"]`))v=$('.view').dataset.view;
   $$('.view').forEach(s=>s.classList.toggle('active',s.dataset.view===v));
   $$('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.view===v));
   try{localStorage.setItem(STORE+'-view',v)}catch(e){}
