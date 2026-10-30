@@ -358,6 +358,165 @@ ul.pts b{font-family:var(--f-head);font-weight:600}
   .gt .pv.num{text-align:right;padding:.25mm .4mm}
   .gt>.pv{display:flex!important}
 }
+/* ===== Phone entry mode (screens ≤700px). Print is unaffected: these rules are screen-only.
+   "A4 preview" (html.a4) switches back to the true A4 sheet, scaled to the screen width. ===== */
+.gc{display:flex;align-items:center;min-width:0}
+.gc>select,.gc>input,.gc>.pv{flex:1;min-width:0}
+.gl{display:none}
+.btn-a4{display:none}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media screen and (max-width:700px){
+  .btn-a4{display:inline-block}
+  .btn-a4[aria-pressed="true"]{background:#fff;color:var(--ink);border-color:#fff}
+  html.a4:not(.measuring) .sheet{zoom:var(--a4z,.45)}
+  html.a4 .desk{padding:12px 8px 40px}
+  html.a4:not(.measuring) .sheet select{-webkit-appearance:none;appearance:none}
+  .toolbar{position:static;padding:10px 12px;gap:8px}
+  .tabs{max-width:100%;overflow-x:auto;scrollbar-width:none}
+  .tabs>*{white-space:nowrap;flex:none}
+  .tb-note{display:none}
+  .tb-group label{display:none}
+  html:not(.a4) .desk{padding:10px 0 48px;overflow-x:visible}
+  html:not(.a4) .view{gap:14px}
+  html:not(.a4) .sheet{width:auto;height:auto;margin:0 8px;padding:0 14px 18px;border-radius:8px;overflow:visible;font-size:15px;line-height:1.35}
+  html:not(.a4) .sheet::before{margin:0 -14px 14px;height:5px;border-radius:8px 8px 0 0}
+  html:not(.a4) .picker{width:auto;margin:0 8px}
+  /* header + patient strip */
+  html:not(.a4) .sh-head{grid-template-columns:1fr;grid-template-areas:"org" "ttl" "ids";row-gap:8px;padding-bottom:10px}
+  html:not(.a4) .org-name{font-size:15px}
+  html:not(.a4) .org-sub{font-size:12px}
+  html:not(.a4) .eyebrow{font-size:10.5px;letter-spacing:.1em}
+  html:not(.a4) .ttl h1{font-size:22px}
+  html:not(.a4) .ids{justify-self:start;font-size:13px;gap:4px 10px}
+  html:not(.a4) .ids dt{font-size:10.5px}
+  html:not(.a4) .ids dd,html:not(.a4) .ids input{font-size:16px}
+  html:not(.a4) .pt{grid-template-columns:1fr 1fr;gap:10px 12px;padding:12px 0}
+  html:not(.a4) .pt .span2,html:not(.a4) .pt .span3,html:not(.a4) .pt .span4{grid-column:span 2}
+  html:not(.a4) .fld>label,html:not(.a4) .fld>.lbl{font-size:10.5px;height:auto;line-height:1.3;white-space:normal}
+  html:not(.a4) select.mini{font-size:12px;height:auto;line-height:1.3;padding:1px 3px}
+  html:not(.a4) .fv{height:auto;min-height:36px}
+  html:not(.a4) .fv input,html:not(.a4) .fv select,html:not(.a4) .fv output{font-size:16px;height:34px;line-height:34px}
+  html:not(.a4) .fv .u{font-size:12px}
+  html:not(.a4) .pt-mini{font-size:13px;gap:4px 14px;padding:8px 0}
+  html:not(.a4) .pt-mini b{font-size:13px}
+  html:not(.a4) .bsa-warn{font-size:13px;padding:6px 10px;border-radius:6px}
+  /* body + sections: one column */
+  html:not(.a4) .body{gap:18px;padding-top:12px;overflow:visible}
+  html:not(.a4) .cols,html:not(.a4) .cols.w-l,html:not(.a4) .card-grid,html:not(.a4) .refgrid,html:not(.a4) .torso,html:not(.a4) .refbull{grid-template-columns:minmax(0,1fr);gap:18px}
+  html:not(.a4) .stack{gap:18px}
+  html:not(.a4) .torso svg{width:min(60vw,220px);justify-self:center}
+  html:not(.a4) .sec h2{flex-wrap:wrap;font-size:14px;gap:6px;padding-bottom:5px;margin-bottom:4px}
+  html:not(.a4) .sec h2 .n{width:22px;height:22px;font-size:12px}
+  html:not(.a4) .sec h2 .hn{flex-basis:100%;order:9;margin-left:0!important;font-size:12px}
+  html:not(.a4) .sub{font-size:11px;margin:10px 0 2px}
+  html:not(.a4) .setall{font-size:13px;padding:5px 10px;border-radius:6px}
+  html:not(.a4) .tgl input{width:18px;height:18px}
+  /* measurement rows become two-line cards */
+  html:not(.a4) .r{grid-template-columns:minmax(0,1fr) 92px 54px;grid-template-areas:"lb v un" "rf fl fl";row-gap:2px;column-gap:8px;padding:7px 0;min-height:0}
+  html:not(.a4) .r.rh{display:none}
+  html:not(.a4) .r>.lb{grid-area:lb;font-size:15px}
+  html:not(.a4) .r>input,html:not(.a4) .r>output{grid-area:v;font-size:16px;min-height:34px;padding:2px 8px;border-radius:5px}
+  html:not(.a4) .r>output{line-height:30px}
+  html:not(.a4) .r>.un{grid-area:un;font-size:12px}
+  html:not(.a4) .r>.rf{grid-area:rf;font-size:12px;line-height:1.3}
+  html:not(.a4) .r>.fl{grid-area:fl;text-align:right}
+  html:not(.a4) .rf::before{content:"Ref ";font-family:var(--f-head);color:var(--muted);font-size:11px}
+  html:not(.a4) .rf:empty::before{content:none}
+  html:not(.a4) .rf sup{font-size:9px}
+  html:not(.a4) .rf .r2{display:inline;margin-left:8px;font-size:12px}
+  html:not(.a4) .lb i{font-size:10px}
+  html:not(.a4) .chip{font-size:12px;padding:1px 7px;border-radius:10px}
+  html:not(.a4) .fl .b2{font-size:11px}
+  /* qualitative rows: label above control */
+  html:not(.a4) .q{grid-template-columns:minmax(0,1fr);row-gap:4px;padding:7px 0;min-height:0}
+  html:not(.a4) .q>label,html:not(.a4) .q>span.l{font-size:13px;color:var(--ink-2)}
+  html:not(.a4) .q select,html:not(.a4) .q input,html:not(.a4) .vg select,html:not(.a4) .vt select,html:not(.a4) .vt input,html:not(.a4) .gt select,html:not(.a4) .gt input,html:not(.a4) .eb select{font-size:16px;min-height:36px;padding:2px 6px;border-radius:5px}
+  html:not(.a4) .q.q3{grid-template-columns:1fr 1fr;column-gap:10px}
+  html:not(.a4) .q.q3>span.l{grid-column:1/-1}
+  html:not(.a4) .q.q3.hd{font-size:11px;padding:4px 0}
+  html:not(.a4) .q.q3.hd>span:first-child{display:none}
+  html:not(.a4) .vgrade,html:not(.a4) .vgrade .q{grid-template-columns:1fr 1fr;column-gap:10px}
+  html:not(.a4) .vgrade .q{grid-template-columns:minmax(0,1fr)}
+  /* views obtained */
+  html:not(.a4) .vg,html:not(.a4) .vg.vg3,html:not(.a4) .vg.vg4{grid-template-columns:minmax(0,1fr)}
+  html:not(.a4) .vrow,html:not(.a4) .vg .vrow,html:not(.a4) .vg.vg4 .vrow{grid-template-columns:30px minmax(0,1fr) 128px;gap:8px;min-height:44px}
+  html:not(.a4) .vg .vrow:not(:has(.pos)){grid-template-columns:minmax(0,1fr) 128px}
+  html:not(.a4) .vrow span.v{font-size:15px}
+  html:not(.a4) .vrow select{font-size:16px;min-height:36px;padding:2px 6px}
+  html:not(.a4) .pos{height:24px;font-size:12px;border-radius:5px}
+  /* labelled grids (valves, atria, septa, aorta) */
+  html:not(.a4) .vt,html:not(.a4) .gt{grid-template-columns:1fr 1fr;column-gap:10px;row-gap:6px}
+  html:not(.a4) .vt>.hd,html:not(.a4) .gt>.hd{display:none}
+  html:not(.a4) .vt>.vn,html:not(.a4) .gt>.vn{grid-column:1/-1;font-size:15px;margin-top:10px;border-bottom:1pt solid var(--rule)}
+  html:not(.a4) .vt>*,html:not(.a4) .gt>*{min-height:0;border-bottom:0}
+  html:not(.a4) .gc{flex-direction:column;align-items:stretch;gap:3px}
+  html:not(.a4) .gc.wide{grid-column:1/-1}
+  html:not(.a4) .gc.blank{display:none}
+  html:not(.a4) .gl{display:block;font-family:var(--f-head);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  html:not(.a4) .gc>.sten,html:not(.a4) .gc>span:not(.gl):not(.pv){font-size:14px;min-height:36px;display:flex;align-items:center}
+  /* interpretation, notes, free text */
+  html:not(.a4) .interp{font-size:14px;padding:8px 10px;gap:4px 10px;border-radius:6px}
+  html:not(.a4) .interp dt{font-size:11px}
+  html:not(.a4) .note{font-size:12.5px}
+  html:not(.a4) .ta{font-size:16px;border-radius:6px;padding:8px 10px}
+  html:not(.a4) .ta.tall,html:not(.a4) .grow .ta{min-height:160px}
+  html:not(.a4) .ta.mid{height:120px}
+  html:not(.a4) .ta.short{height:84px}
+  /* eyeball checklist */
+  html:not(.a4) .eb{padding:8px 10px;gap:8px;border-radius:6px}
+  html:not(.a4) .eb-h{font-size:12px;flex-wrap:wrap}
+  html:not(.a4) .eb-row{grid-template-columns:minmax(0,1fr);gap:4px}
+  html:not(.a4) .eb-row>.l{font-size:12px}
+  html:not(.a4) .eb-opts{gap:8px 16px}
+  html:not(.a4) .ck{font-size:15px;gap:6px}
+  html:not(.a4) .ck input{width:20px;height:20px;border-radius:4px}
+  html:not(.a4) .ck input:checked::after{width:10px;height:5px;border-width:0 0 2.5px 2.5px}
+  html:not(.a4) .eb-sugg{font-size:12.5px;padding:6px 8px}
+  html:not(.a4) .eb-sugg button{font-size:12.5px;padding:3px 8px}
+  html:not(.a4) .dc{grid-template-columns:minmax(0,1fr);gap:4px}
+  html:not(.a4) .dc>.l{font-size:12px}
+  html:not(.a4) .dc .ck{font-size:14px}
+  /* reference tables */
+  html:not(.a4) table.ref,html:not(.a4) table.asg,html:not(.a4) table.ref.sm{font-size:13px}
+  html:not(.a4) table.ref th,html:not(.a4) table.asg th{font-size:10.5px}
+  html:not(.a4) table.ref td,html:not(.a4) table.ref th{padding:4px 6px 4px 0}
+  html:not(.a4) table.ref td.num,html:not(.a4) table.ref.sm td.num,html:not(.a4) table.asg td{font-size:12.5px}
+  html:not(.a4) table.asg td,html:not(.a4) table.asg th{padding:4px 6px 4px 0}
+  html:not(.a4) table caption,html:not(.a4) table.asg caption,html:not(.a4) table.ref.sm caption{font-size:12px}
+  html:not(.a4) ol.steps li{font-size:14px;min-height:30px;grid-template-columns:28px 1fr}
+  html:not(.a4) ol.steps li span{width:22px;height:22px;font-size:12px}
+  html:not(.a4) .sheet *{overflow-wrap:anywhere}
+  html:not(.a4) .det{grid-template-columns:auto minmax(0,1fr) minmax(0,1fr);column-gap:8px}
+  html:not(.a4) .det>*,html:not(.a4) table.ref td.num{white-space:normal!important}
+  html:not(.a4) .attrib,html:not(.a4) .det,html:not(.a4) ul.pts,html:not(.a4) .fml{font-size:13px}
+  html:not(.a4) .fml dd{font-size:12px}
+  html:not(.a4) .cardlink{padding:10px 12px}
+  html:not(.a4) .cl-k{font-size:15px}
+  html:not(.a4) .cl-u{font-size:13px}
+  html:not(.a4) .cl-n{font-size:12px}
+  /* signatures + footer */
+  html:not(.a4) .sig{grid-template-columns:1fr 1fr;gap:10px 12px}
+  html:not(.a4) .sig .line{height:36px}
+  html:not(.a4) .sh-foot{grid-template-columns:minmax(0,1fr);font-size:11px;margin-top:16px;padding-top:8px}
+  html:not(.a4) .sh-foot .stamp{text-align:left;white-space:normal;font-size:11px}
+  /* regional wall motion (TEE) */
+  html:not(.a4) .wm,html:not(.a4) .wm2{grid-template-columns:minmax(0,1fr);gap:14px}
+  html:not(.a4) .bull{width:min(100%,340px);justify-self:center}
+  html:not(.a4) .wvs{grid-template-columns:1fr 1fr;gap:10px}
+  html:not(.a4) .wv b{font-size:11px}
+  html:not(.a4) .wmt{grid-template-columns:46px repeat(6,minmax(0,1fr));column-gap:4px;font-size:13px}
+  html:not(.a4) .wmt>*{min-height:44px}
+  html:not(.a4) .wmt .hd{font-size:9px;min-height:30px;letter-spacing:0}
+  html:not(.a4) .wmt .lv{font-size:10.5px}
+  html:not(.a4) .wmc{flex-direction:column;gap:1px}
+  html:not(.a4) .wmc sup{font-size:10px}
+  html:not(.a4) .wmc select{font-size:16px;width:100%;min-width:38px;min-height:32px;border-radius:5px}
+  html:not(.a4) .wm-leg{font-size:12.5px;gap:4px 12px}
+  html:not(.a4) .wm-leg i{width:14px;height:14px}
+  html:not(.a4) .wm-leg .tk{width:16px;height:5px}
+  html:not(.a4) .sug{font-size:13px}
+  html:not(.a4) .sug b{font-size:11px}
+}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -375,6 +534,7 @@ ul.pts b{font-family:var(--f-head);font-weight:600}
     <button class="btn primary" id="btnPrint">Print / Save PDF</button>
     <button class="btn" id="btnExample">Load example</button>
     <button class="btn" id="btnClear">Clear</button>
+    <button class="btn btn-a4" id="btnA4" aria-pressed="false" title="Show the true A4 page, scaled to fit">A4 preview</button>
   </div>
   <span class="tb-note">Click wall segments to score · drafts autosave in this browser</span>
 </div>
@@ -468,7 +628,7 @@ ul.pts b{font-family:var(--f-head);font-weight:600}
           </div>
           <div class="q"><label>Agitated saline (bubble) study</label><select data-k="bubble" data-opts="bubble" data-f="Bubble study"></select></div>
           <div class="tbl" data-rows="peff_mm"></div>
-          <div class="q"><label>Pleural effusion, mm (left · right)</label><span class="vgrade" style="column-gap:1.4mm"><input type="number" step="any" inputmode="decimal" data-k="pleff_l" data-f="Left pleural effusion (mm)" aria-label="Left pleural effusion mm"><input type="number" step="any" inputmode="decimal" data-k="pleff_r" data-f="Right pleural effusion (mm)" aria-label="Right pleural effusion mm"></span></div>
+          <div class="q"><label>Pleural effusion, mm (left · right)</label><span class="vgrade" style="column-gap:1.4mm"><input type="number" step="any" inputmode="decimal" data-k="pleff_l" data-f="Left pleural effusion (mm)" placeholder="Left" aria-label="Left pleural effusion mm"><input type="number" step="any" inputmode="decimal" data-k="pleff_r" data-f="Right pleural effusion (mm)" placeholder="Right" aria-label="Right pleural effusion mm"></span></div>
         </section>
       </div>
     </div>
@@ -708,6 +868,27 @@ ul.pts b{font-family:var(--f-head);font-weight:600}
 (function(){
 "use strict";
 const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+/* ---------- phone entry mode helpers ---------- */
+/* Label every cell of the header-driven grids (.vt, .gt) so they can reflow into labelled cards on phones */
+function wrapGrids(){
+  $$('.vt,.gt').forEach(g=>{
+    const kids=Array.from(g.children),hd=kids.filter(x=>x.classList.contains('hd')),n=hd.length;if(!n)return;
+    kids.filter(x=>!x.classList.contains('hd')).forEach((el,i)=>{
+      if(el.classList.contains('vn')||el.classList.contains('gc'))return;
+      const lab=document.createElement('label');lab.className='gc';
+      const t=hd[i%n].textContent.trim();
+      if(el.matches('input[type=text]'))lab.classList.add('wide');
+      if(el.tagName==='SPAN'&&!el.children.length&&!el.textContent.trim()&&!el.dataset.o)lab.classList.add('blank');
+      el.before(lab);if(t)lab.insertAdjacentHTML('beforeend',`<span class="gl">${t}</span>`);lab.appendChild(el);
+    });
+  });
+}
+/* Run layout-dependent work (pagination, print text fitting) against the true A4 sheet, whatever the screen */
+function withA4(fn){const r=document.documentElement,had=r.classList.contains('a4');r.classList.add('a4','measuring');
+  try{return fn()}finally{r.classList.remove('measuring');if(!had)r.classList.remove('a4')}}
+function setA4Zoom(){document.documentElement.style.setProperty('--a4z',String(Math.min(1,(window.innerWidth-16)/793.7)))}
+function setA4(on){document.documentElement.classList.toggle('a4',on);const b=document.getElementById('btnA4');if(b)b.setAttribute('aria-pressed',on?'true':'false');
+  try{localStorage.setItem('fate-tee-a4',on?'1':'')}catch(e){}}
 const STORE='tee-report-v1';
 let S={};
 
@@ -1007,6 +1188,7 @@ function build(){
   });
   $$('input[data-k]:not([id]),textarea[data-k]:not([id])').forEach(i=>i.id=uid(i.dataset.k));
   $$('textarea.ta').forEach(t=>{const d=document.createElement('div');d.className='ta-print';d.dataset.o=t.dataset.k+'_p';t.after(d)});
+  wrapGrids();
   ensureMirrors(document);
 }
 
@@ -1143,7 +1325,8 @@ function update(){
 }
 function fmtDate(v,time){if(!v)return'';const d=new Date(v);if(isNaN(d))return v;const p=n=>String(n).padStart(2,'0');
   return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`+(time?` ${p(d.getHours())}:${p(d.getMinutes())}`:'')}
-function fitText(){
+function fitText(){withA4(fitText0)}
+function fitText0(){
   $$('.ta-print').forEach(d=>{let f=7.8;d.style.fontSize=f+'pt';
     const prev=d.style.display;d.style.display='block';
     while(d.scrollHeight>d.clientHeight+1&&f>5.6){f-=0.2;d.style.fontSize=f.toFixed(1)+'pt'}
@@ -1250,6 +1433,9 @@ $$('.tabs button').forEach(b=>b.addEventListener('click',()=>show(b.dataset.view
 try{const v=localStorage.getItem(STORE+'-view');if(v)show(v)}catch(e){}
 $('#printScope').addEventListener('change',markLast);
 $('#btnPrint').addEventListener('click',()=>{stamp();markLast();fitText();window.print()});
+try{setA4(localStorage.getItem('fate-tee-a4')==='1')}catch(e){}
+setA4Zoom();window.addEventListener('resize',setA4Zoom);
+$('#btnA4').addEventListener('click',()=>setA4(!document.documentElement.classList.contains('a4')));
 window.addEventListener('beforeprint',()=>{stamp();markLast();fitText()});
 $('#btnExample').addEventListener('click',()=>{S=Object.assign({study_dt:S.study_dt||nowLocal(),bsa_m:'DuBois'},JSON.parse(JSON.stringify(EXAMPLE)));applyAll();save();update()});
 $('#btnClear').addEventListener('click',()=>{

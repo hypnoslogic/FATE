@@ -95,6 +95,12 @@ The TEE page saves its drafts separately from the FATE page.
 
 ---
 
+## Phones
+
+On screens narrower than about 700 px (phones), both pages switch to a single-column entry layout: larger text, full-width fields (16 px, so iPhones do not zoom when you tap a field), measurement rows as two-line cards, labelled valve and aorta grids, and a larger wall motion bullseye. Tablets and computers keep the A4 sheet view.
+
+**A4 preview** (phone only) shows the true A4 page scaled to the screen. Printing or saving to PDF from a phone always produces the standard A4 pages, whichever mode is showing.
+
 ## Printing (both pages)
 
 - True A4 portrait layout with headers, page numbers, references and disclaimers on every sheet.
